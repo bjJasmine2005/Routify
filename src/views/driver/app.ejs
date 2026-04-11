@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title><%= title %></title>
+  <meta name="theme-color" content="#2563eb">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚌</text></svg>">
+  <meta name="description" content="Routify Driver App — Track your route and mark student pickups in real-time.">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,0&display=swap" rel="stylesheet">
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --surface2: #f8fafc;
+      --border: #e2e8f0;
+      --border2: #cbd5e1;
+      --primary: #2563eb;
+      --primary-light: #eff6ff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --warning: #d97706;
+    }
+
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ─── Login Screen ─── */
+    #login-section {
+      display: none;
+      min-height: 100vh;
+      align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    #login-section.show { display: flex; }
+    .login-card {
+      width: 100%; max-width: 400px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 24px; padding: 36px 32px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    .login-logo {
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, #2563eb, #4f46e5);
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+      box-shadow: 0 8px 20px rgba(37,99,235,0.3);
+    }
+    .login-logo .material-symbols-outlined { font-size: 28px; color: white; }
+    .login-title { font-size: 22px; font-weight: 900; text-align: center; margin-bottom: 6px; }
+    .login-sub { font-size: 14px; color: var(--muted); text-align: center; margin-bottom: 28px; }
+    .field-group { margin-bottom: 16px; }
+    .field-label { display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px; }
+    .field-input {
+      width: 100%; border: 2px solid var(--border); border-radius: 12px;
+      padding: 12px 14px; font-size: 15px; font-family: 'Inter', sans-serif;
+      color: var(--text); background: var(--surface); outline: none;
+      transition: border-color 0.15s;
+    }
+    .field-input:focus { border-color: var(--primary); }
+    .btn-login {
+      width: 100%; padding: 14px;
+      background: var(--primary); color: white;
+      border: none; border-radius: 12px;
+      font-size: 15px; font-weight: 700; font-family: 'Inter', sans-serif;
+      cursor: pointer; transition: opacity 0.15s;
+      margin-top: 4px;
+    }
+    .btn-login:hover { opacity: 0.9; }
+    .login-error {
+      display: none;
+      background: #fef2f2; border: 1px solid #fecaca;
+      border-radius: 10px; padding: 10px 14px;
+      font-size: 13px; color: var(--danger);
+      font-weight: 600; margin-bottom: 16px;
+    }
+    .login-error.show { display: block; }
+
+    /* ─── App Shell ─── */
+    #app-section {
+      display: none;
+      min-height: 100vh;
+      flex-direction: column;
+    }
+    #app-section.show { display: flex; }
+
+    /* ─── Header ─── */
+    .app-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 20;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .header-logo {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #2563eb, #4f46e5);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .header-logo .material-symbols-outlined { font-size: 18px; color: white; }
+    .header-title { font-size: 14px; font-weight: 800; color: var(--text); }
+    .header-sub { font-size: 12px; color: var(--muted); }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .conn-status {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 700; color: var(--danger);
+    }
+    .conn-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--danger); }
+    .conn-status.online { color: var(--success); }
+    .conn-status.online .conn-dot { background: var(--success); }
+    .logout-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); padding: 4px;
+      display: flex; align-items: center;
+      transition: color 0.15s;
+    }
+    .logout-btn:hover { color: var(--danger); }
+    .logout-btn .material-symbols-outlined { font-size: 20px; }
+
+    /* ─── Main content ─── */
+    .app-main {
+      flex: 1;
+      padding: 16px;
+      display: flex; flex-direction: column; gap: 14px;
+      max-width: 800px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* ─── Trip Card ─── */
+    .trip-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px; padding: 20px;
+    }
+
+    /* Pre-trip */
+    .pre-trip-header { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+    .pre-icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: var(--primary-light);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .pre-icon .material-symbols-outlined { font-size: 24px; color: var(--primary); }
+    .pre-title { font-size: 18px; font-weight: 900; }
+    .pre-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    .route-select-label { font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 6px; display: block; }
+    .route-select {
+      width: 100%; border: 2px solid var(--border); border-radius: 12px;
+      padding: 10px 12px; font-size: 14px; font-family: 'Inter', sans-serif;
+      color: var(--text); background: var(--surface); outline: none;
+      transition: border-color 0.15s; margin-bottom: 14px;
+    }
+    .route-select:focus { border-color: var(--primary); }
+
+    .btn-start-trip {
+      width: 100%; padding: 16px;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white; border: none; border-radius: 14px;
+      font-size: 16px; font-weight: 800; font-family: 'Inter', sans-serif;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+      box-shadow: 0 6px 20px rgba(37,99,235,0.35);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-start-trip:active { transform: scale(0.98); box-shadow: 0 2px 10px rgba(37,99,235,0.25); }
+    .btn-start-trip .material-symbols-outlined { font-size: 22px; }
+
+    /* Active trip */
+    #active-trip-state { display: none; }
+    .active-trip-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .trip-live { display: flex; align-items: center; gap: 12px; }
+    .live-ring {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: #f0fdf4;
+      display: flex; align-items: center; justify-content: center;
+      animation: pulse-green 2s ease infinite;
+    }
+    @keyframes pulse-green {
+      0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+      70% { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+      100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+    }
+    .live-ring .material-symbols-outlined { font-size: 18px; color: var(--success); }
+    .live-title { font-size: 14px; font-weight: 900; color: var(--success); }
+    .live-duration { font-size: 12px; color: var(--muted); }
+    .gps-label { font-size: 11px; color: var(--muted); text-align: right; }
+    .gps-val { font-size: 12px; font-weight: 700; color: var(--primary); }
+
+    .progress-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .progress-track { height: 6px; background: #f1f5f9; border-radius: 100px; overflow: hidden; margin-bottom: 14px; }
+    .progress-fill { height: 100%; background: var(--primary); border-radius: 100px; transition: width 0.5s ease; width: 0%; }
+
+    .btn-end-trip {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+      color: white; border: none; border-radius: 14px;
+      font-size: 15px; font-weight: 800; font-family: 'Inter', sans-serif;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 6px 20px rgba(220,38,38,0.3);
+      transition: transform 0.15s;
+    }
+    .btn-end-trip:active { transform: scale(0.98); }
+    .btn-end-trip .material-symbols-outlined { font-size: 20px; }
+
+    /* ─── Nav Button ─── */
+    .nav-btn {
+      display: none; /* shown via JS when trip active */
+      align-items: center; gap: 14px;
+      background: var(--text); color: white;
+      padding: 16px 20px; border-radius: 18px;
+      text-decoration: none; border: none;
+      transition: opacity 0.15s;
+    }
+    .nav-btn:hover { opacity: 0.9; }
+    .nav-btn-icon {
+      width: 40px; height: 40px; border-radius: 11px;
+      background: rgba(255,255,255,0.15);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .nav-btn-icon .material-symbols-outlined { font-size: 20px; }
+    .nav-btn-label { font-size: 14px; font-weight: 800; }
+    .nav-btn-sub { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 1px; }
+    .nav-btn .material-symbols-outlined.chevron { font-size: 20px; margin-left: auto; opacity: 0.5; }
+
+    /* ─── Student List Card ─── */
+    .checklist-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px; overflow: hidden;
+    }
+    .checklist-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .checklist-title { font-size: 15px; font-weight: 800; }
+    .checklist-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .count-badge {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 100px; padding: 4px 12px;
+      font-size: 12px; font-weight: 700; color: var(--muted);
+    }
+    .legend {
+      padding: 10px 20px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      display: flex; gap: 16px; flex-wrap: wrap;
+    }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: var(--muted); }
+    .legend-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+    /* ─── Student Item ─── */
+    .student-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid #f8fafc;
+      transition: background 0.15s;
+    }
+    .student-item:last-child { border-bottom: none; }
+    .student-item.picked-up { background: #f0fdf4; }
+    .student-item.dropped-off { background: #faf5ff; opacity: 0.8; }
+    .student-item.absent { background: #fef2f2; opacity: 0.8; }
+    .student-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #f1f5f9;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 900; color: #64748b; flex-shrink: 0;
+    }
+    .student-meta { flex: 1; min-width: 0; margin: 0 12px; }
+    .student-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .student-stop { font-size: 12px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Attendance dropdown */
+    .att-wrap { position: relative; flex-shrink: 0; }
+    .att-trigger {
+      display: flex; align-items: center; gap: 5px;
+      padding: 5px 10px; border-radius: 100px;
+      font-size: 12px; font-weight: 700;
+      border: none; cursor: pointer; font-family: 'Inter', sans-serif;
+      transition: opacity 0.15s;
+    }
+    .att-trigger:hover { opacity: 0.8; }
+    .att-trigger .material-symbols-outlined { font-size: 14px; }
+    .att-trigger.pending  { background: #f1f5f9; color: #64748b; }
+    .att-trigger.picked_up   { background: #dcfce7; color: #15803d; }
+    .att-trigger.dropped_off { background: #f3e8ff; color: #7e22ce; }
+    .att-trigger.absent  { background: #fef2f2; color: #dc2626; }
+
+    .att-menu {
+      display: none;
+      position: absolute; right: 0; top: calc(100% + 6px);
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      z-index: 50; min-width: 160px; overflow: hidden;
+    }
+    .att-menu.open { display: block; }
+    .att-menu-item {
+      width: 100%; border: none; background: none;
+      padding: 10px 14px; font-size: 13px; font-weight: 600;
+      text-align: left; cursor: pointer; font-family: 'Inter', sans-serif;
+      transition: background 0.1s; display: block;
+    }
+    .att-menu-item:hover { background: var(--surface2); }
+
+    /* ─── Location Info ─── */
+    .location-info {
+      display: none;
+      background: #eff6ff; border: 1px solid #bfdbfe;
+      border-radius: 14px; padding: 12px 16px;
+    }
+    .location-info.show { display: block; }
+    .location-label { font-size: 11px; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
+    .location-label .material-symbols-outlined { font-size: 14px; }
+    .location-val { font-size: 13px; font-weight: 700; color: #1e3a8a; }
+
+    /* ─── Empty State ─── */
+    .empty-state { padding: 48px 24px; text-align: center; color: var(--muted); }
+    .empty-state .material-symbols-outlined { font-size: 40px; margin-bottom: 10px; opacity: 0.3; }
+    .empty-state p { font-size: 14px; font-weight: 600; }
+    .empty-state small { font-size: 12px; }
+
+    /* ─── Toast ─── */
+    .mini-toast {
+      position: fixed; bottom: 20px; left: 16px; right: 16px;
+      max-width: 500px; margin: 0 auto;
+      background: var(--text); color: white;
+      padding: 13px 18px; border-radius: 14px;
+      font-size: 13px; font-weight: 700;
+      text-align: center; z-index: 100;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    /* ─── Responsive ─── */
+    @media (min-width: 640px) {
+      .app-main { padding: 20px 24px; gap: 16px; }
+      .trip-card { padding: 24px; }
+      .btn-start-trip { font-size: 17px; }
+    }
+
+    @media (min-width: 768px) {
+      .app-main { padding: 24px 32px; flex-direction: row; flex-wrap: wrap; align-items: flex-start; }
+      .trip-col { flex: 0 0 340px; display: flex; flex-direction: column; gap: 14px; }
+      .list-col { flex: 1; min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Login Section -->
+  <div id="login-section">
+    <div class="login-card">
+      <div class="login-logo"><span class="material-symbols-outlined">directions_bus</span></div>
+      <div class="login-title">Driver Login</div>
+      <div class="login-sub">Sign in with your driver credentials</div>
+      <div class="login-error" id="login-error"></div>
+      <form id="login-form">
+        <div class="field-group">
+          <label class="field-label" for="dl-email">Email</label>
+          <input class="field-input" id="dl-email" type="email" required placeholder="driver@school.com" autocomplete="email">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="dl-password">Password</label>
+          <input class="field-input" id="dl-password" type="password" required placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn-login">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- App Section -->
+  <div id="app-section">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="header-logo"><span class="material-symbols-outlined">directions_bus</span></div>
+        <div>
+          <div class="header-title">Routify Driver</div>
+          <div class="header-sub" id="driver-name-header">Loading...</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="conn-status" id="conn-status">
+          <div class="conn-dot"></div>
+          <span>Offline</span>
+        </div>
+        <button class="logout-btn" onclick="driverLogout()" title="Logout">
+          <span class="material-symbols-outlined">logout</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main — on desktop, becomes 2-column -->
+    <main class="app-main">
+
+      <!-- LEFT/TOP column: Trip card + nav + location -->
+      <div class="trip-col" id="trip-col">
+
+        <!-- Trip Card -->
+        <div class="trip-card">
+          <!-- Pre-trip -->
+          <div id="pre-trip-state">
+            <div class="pre-trip-header">
+              <div class="pre-icon"><span class="material-symbols-outlined">route</span></div>
+              <div>
+                <div class="pre-title">Ready to Start</div>
+                <div class="pre-sub">Select route and begin your trip</div>
+              </div>
+            </div>
+            <label class="route-select-label" for="route-select">Select Route</label>
+            <select id="route-select" class="route-select">
+              <option value="">— Loading routes —</option>
+            </select>
+            <button class="btn-start-trip" onclick="startTrip()">
+              <span class="material-symbols-outlined">play_arrow</span>
+              Start Trip
+            </button>
+          </div>
+
+          <!-- Active Trip -->
+          <div id="active-trip-state">
+            <div class="active-trip-header">
+              <div class="trip-live">
+                <div class="live-ring"><span class="material-symbols-outlined">radio_button_checked</span></div>
+                <div>
+                  <div class="live-title">TRIP ACTIVE</div>
+                  <div class="live-duration" id="trip-duration">0:00 elapsed</div>
+                </div>
+              </div>
+              <div>
+                <div class="gps-label">Tracking</div>
+                <div class="gps-val" id="gps-status">Acquiring...</div>
+              </div>
+            </div>
+
+            <div class="progress-row">
+              <span>Pickups Complete</span>
+              <span id="pickup-progress-text">0 / 0</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="pickup-progress-bar"></div>
+            </div>
+
+            <button class="btn-end-trip" onclick="endTrip()">
+              <span class="material-symbols-outlined">stop</span>
+              End Trip
+            </button>
+          </div>
+        </div>
+
+        <!-- Nav Button (shown during active trip) -->
+        <a id="nav-btn" href="#" class="nav-btn" style="display:none">
+          <div class="nav-btn-icon"><span class="material-symbols-outlined">navigation</span></div>
+          <div>
+            <div class="nav-btn-label">Open Navigation</div>
+            <div class="nav-btn-sub">Launch Google Maps</div>
+          </div>
+          <span class="material-symbols-outlined chevron">chevron_right</span>
+        </a>
+
+        <!-- Location Info -->
+        <div class="location-info" id="location-info">
+          <div class="location-label">
+            <span class="material-symbols-outlined">location_on</span>
+            Current GPS Location
+          </div>
+          <div class="location-val" id="location-text">Acquiring GPS...</div>
+        </div>
+
+      </div><!-- trip-col -->
+
+      <!-- RIGHT/BOTTOM column: Student Checklist -->
+      <div class="list-col" id="list-col">
+        <div class="checklist-card">
+          <div class="checklist-header">
+            <div>
+              <div class="checklist-title">Student Attendance</div>
+              <div class="checklist-sub">Mark pickups and drop-offs</div>
+            </div>
+            <span class="count-badge" id="check-count">0 / 0</span>
+          </div>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#94a3b8"></div>Pending</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Picked Up</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#a855f7"></div>Dropped Off</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Absent</div>
+          </div>
+          <div id="student-list">
+            <div class="empty-state">
+              <div class="material-symbols-outlined">group</div>
+              <p>No students assigned</p>
+              <small>Ask your admin to assign students to your route</small>
+            </div>
+          </div>
+        </div>
+      </div><!-- list-col -->
+
+    </main>
+  </div><!-- app-section -->
+
+  <script>
+    let token = localStorage.getItem('routify_token');
+    let user = JSON.parse(localStorage.getItem('routify_user') || '{}');
+
+    function checkAuth() {
+      if (!token) { document.getElementById('login-section').classList.add('show'); return false; }
+      document.getElementById('app-section').classList.add('show');
+      document.getElementById('driver-name-header').textContent = user.name || 'Driver';
+      return true;
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById('login-error');
+      errEl.classList.remove('show');
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: document.getElementById('dl-email').value,
+            password: document.getElementById('dl-password').value
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) { errEl.textContent = data.error || 'Login failed'; errEl.classList.add('show'); return; }
+        localStorage.setItem('routify_token', data.token);
+        localStorage.setItem('routify_user', JSON.stringify(data.user));
+        token = data.token; user = data.user;
+        document.getElementById('login-section').classList.remove('show');
+        document.getElementById('app-section').classList.add('show');
+        document.getElementById('driver-name-header').textContent = data.user.name;
+        initApp();
+      } catch { errEl.textContent = 'Connection error. Try again.'; errEl.classList.add('show'); }
+    });
+
+    function driverLogout() {
+      localStorage.removeItem('routify_token');
+      localStorage.removeItem('routify_user');
+      window.location.href = '/login';
+    }
+
+    const socket = io();
+    let tripId = localStorage.getItem('routify_active_trip_id');
+    if (!tripId) {
+        tripId = 'trip-' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('routify_active_trip_id', tripId);
+    }
+    let isTripActive = localStorage.getItem('routify_trip_active') === 'true', watchId = null, durationInterval = null;
+    let tripStartTime = localStorage.getItem('routify_trip_start_time') ? parseInt(localStorage.getItem('routify_trip_start_time')) : null;
+    let pickedUpCount = 0, totalStudents = 0, currentRouteId = null, allStudents = [];
+
+    socket.on('connect', () => {
+      const el = document.getElementById('conn-status');
+      el.innerHTML = '<div class="conn-dot"></div><span>Online</span>';
+      el.className = 'conn-status online';
+      if (user.institutionId) socket.emit('join-institution', user.institutionId);
+    });
+    socket.on('disconnect', () => {
+      const el = document.getElementById('conn-status');
+      el.innerHTML = '<div class="conn-dot"></div><span>Offline</span>';
+      el.className = 'conn-status';
+    });
+
+    async function startTrip() {
+      if (!navigator.geolocation) { alert('Geolocation not supported.'); return; }
+      currentRouteId = document.getElementById('route-select').value;
+      if (!currentRouteId) { alert('Please select a route first.'); return; }
+
+      isTripActive = true;
+      localStorage.setItem('routify_trip_active', 'true');
+      localStorage.setItem('routify_active_route_id', currentRouteId);
+      tripStartTime = Date.now();
+      localStorage.setItem('routify_trip_start_time', tripStartTime.toString());
+
+      document.getElementById('pre-trip-state').style.display = 'none';
+      document.getElementById('active-trip-state').style.display = 'block';
+      document.getElementById('nav-btn').style.display = 'flex';
+      document.getElementById('location-info').classList.add('show');
+
+      socket.emit('trip:start', {
+        institutionId: user.institutionId,
+        tripId, routeId: currentRouteId,
+        driverName: user.name, busName: 'Bus'
+      });
+
+      startDurationTimer();
+
+      try {
+        await fetch(`/api/trips/${tripId}/attendance/init`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ route_id: currentRouteId })
+        });
+        loadAttendance();
+      } catch(e) { console.error('Attendance init:', e); }
+
+      startGpsTracking();
+    }
+
+    function startDurationTimer() {
+        if (durationInterval) clearInterval(durationInterval);
+        durationInterval = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - tripStartTime) / 1000);
+            const m = Math.floor(elapsed / 60), s = elapsed % 60;
+            document.getElementById('trip-duration').textContent = `${m}:${s.toString().padStart(2,'0')} elapsed`;
+        }, 1000);
+    }
+
+    function startGpsTracking() {
+      if (watchId) navigator.geolocation.clearWatch(watchId);
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const { latitude: lat, longitude: lng } = pos.coords;
+          socket.emit('location:update', { institutionId: user.institutionId, tripId, lat, lng, busName: user.name });
+          document.getElementById('gps-status').textContent = 'Active';
+          document.getElementById('location-text').textContent = `${lat.toFixed(5)}°, ${lng.toFixed(5)}°`;
+          document.getElementById('nav-btn').href = `https://www.google.com/maps?q=${lat},${lng}`;
+        },
+        () => { document.getElementById('gps-status').textContent = 'Error'; },
+        { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
+      );
+    }
+
+    function endTrip() {
+      if (!confirm('Are you sure you want to end this trip?')) return;
+      isTripActive = false;
+      localStorage.removeItem('routify_trip_active');
+      localStorage.removeItem('routify_active_trip_id');
+      localStorage.removeItem('routify_active_route_id');
+      localStorage.removeItem('routify_trip_start_time');
+      tripId = 'trip-' + Math.random().toString(36).substr(2, 9); // Prepare next trip ID
+
+      if (watchId) navigator.geolocation.clearWatch(watchId);
+      if (durationInterval) clearInterval(durationInterval);
+      socket.emit('trip:end', { institutionId: user.institutionId, tripId });
+      document.getElementById('active-trip-state').style.display = 'none';
+      document.getElementById('pre-trip-state').style.display = 'block';
+      document.getElementById('nav-btn').style.display = 'none';
+      document.getElementById('location-info').classList.remove('show');
+      buildStudentList(allStudents);
+      showToast('✅ Trip completed! Parents have been notified.');
+    }
+
+    async function loadAttendance() {
+      try {
+        const res = await fetch(`/api/trips/${tripId}/attendance`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) buildAttendanceList(await res.json());
+      } catch(e) { console.error('Load attendance:', e); }
+    }
+
+    function buildStudentList(students) {
+      totalStudents = students.length;
+      const list = document.getElementById('student-list');
+      if (!students.length) {
+        list.innerHTML = `<div class="empty-state"><div class="material-symbols-outlined">group</div><p>No students on this route</p></div>`;
+        document.getElementById('check-count').textContent = '0 students';
+        return;
+      }
+      list.innerHTML = students.map(s => `
+        <div class="student-item" id="item-${s._id||s.id}">
+          <div class="student-avatar">${(s.name||'?')[0].toUpperCase()}</div>
+          <div class="student-meta">
+            <div class="student-name">${s.name}</div>
+            <div class="student-stop">${s.pickup_location || 'No stop specified'}</div>
+          </div>
+          <span style="font-size:12px;font-weight:700;color:var(--muted);background:#f1f5f9;padding:4px 10px;border-radius:100px">No trip</span>
+        </div>`).join('');
+      document.getElementById('check-count').textContent = `${students.length} students`;
+    }
+
+    const STATUS_CFG = {
+      pending:    { label:'Pending',     cls:'pending',    emoji:'⏳' },
+      picked_up:  { label:'On Bus',      cls:'picked_up',  emoji:'🚌' },
+      dropped_off:{ label:'Dropped Off', cls:'dropped_off',emoji:'🏠' },
+      absent:     { label:'Absent',      cls:'absent',     emoji:'❌' }
+    };
+
+    function buildAttendanceList(records) {
+      totalStudents = records.length;
+      pickedUpCount = records.filter(r => r.status === 'picked_up').length;
+      const list = document.getElementById('student-list');
+      if (!records.length) {
+        list.innerHTML = `<div class="empty-state"><div class="material-symbols-outlined">group</div><p>No students on this route</p></div>`;
+        updateProgress(); return;
+      }
+      list.innerHTML = records.map(r => {
+        const s = STATUS_CFG[r.status] || STATUS_CFG.pending;
+        const itemCls = { picked_up:'picked-up', dropped_off:'dropped-off', absent:'absent' }[r.status] || '';
+        return `
+        <div class="student-item ${itemCls}" id="item-${r.student_id}">
+          <div class="student-avatar">${(r.student_name||'?')[0].toUpperCase()}</div>
+          <div class="student-meta">
+            <div class="student-name">${r.student_name || 'Student'}</div>
+            <div class="student-stop">${r.pickup_location || 'No stop'}</div>
+          </div>
+          <div class="att-wrap">
+            <button class="att-trigger ${s.cls}" onclick="toggleMenu('${r.student_id}')">
+              ${s.emoji} ${s.label}
+              <span class="material-symbols-outlined">expand_more</span>
+            </button>
+            <div class="att-menu" id="menu-${r.student_id}">
+              <button class="att-menu-item" onclick="updateAtt('${r.student_id}','picked_up')">🚌 Picked Up</button>
+              <button class="att-menu-item" onclick="updateAtt('${r.student_id}','dropped_off')">🏠 Dropped Off</button>
+              <button class="att-menu-item" onclick="updateAtt('${r.student_id}','absent')">❌ Absent</button>
+              <button class="att-menu-item" onclick="updateAtt('${r.student_id}','pending')">⏳ Reset</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+      updateProgress();
+    }
+
+    function toggleMenu(id) {
+      document.querySelectorAll('.att-menu').forEach(m => { if (m.id !== `menu-${id}`) m.classList.remove('open'); });
+      document.getElementById(`menu-${id}`).classList.toggle('open');
+    }
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.att-wrap')) document.querySelectorAll('.att-menu').forEach(m => m.classList.remove('open'));
+    });
+
+    async function updateAtt(studentId, status) {
+      document.getElementById(`menu-${studentId}`)?.classList.remove('open');
+      try {
+        const res = await fetch(`/api/trips/${tripId}/attendance/${studentId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ status })
+        });
+        if (res.ok) {
+          socket.emit('attendance:update', { institutionId: user.institutionId, tripId, studentId, status });
+          loadAttendance();
+          const labels = { picked_up:'🚌 Marked Picked Up', dropped_off:'🏠 Dropped Off', absent:'❌ Marked Absent', pending:'⏳ Reset' };
+          showToast(labels[status] || 'Status updated');
+        }
+      } catch(e) { console.error('Update att:', e); }
+    }
+
+    function updateProgress() {
+      pickedUpCount = document.querySelectorAll('#student-list .picked-up').length;
+      document.getElementById('check-count').textContent = `${pickedUpCount} / ${totalStudents}`;
+      document.getElementById('pickup-progress-text').textContent = `${pickedUpCount} / ${totalStudents}`;
+      const pct = totalStudents > 0 ? (pickedUpCount / totalStudents * 100) : 0;
+      document.getElementById('pickup-progress-bar').style.width = pct + '%';
+    }
+
+    function showToast(msg) {
+      const existing = document.getElementById('mini-toast');
+      if (existing) existing.remove();
+      const t = document.createElement('div');
+      t.id = 'mini-toast';
+      t.className = 'mini-toast';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 2800);
+    }
+
+    async function loadRoutes() {
+      try {
+        const res = await fetch('/api/routes', { headers: { 'Authorization': `Bearer ${token}` } });
+        const routes = await res.json();
+        const sel = document.getElementById('route-select');
+        sel.innerHTML = '<option value="">— Select your route —</option>' +
+          routes.map(r => `<option value="${r._id||r.id}">${r.name} (${r.student_count||0} students)</option>`).join('');
+      } catch(e) { console.error('Load routes:', e); }
+    }
+
+    async function initApp() {
+      if (user.institutionId) {
+        socket.emit('join-institution', user.institutionId);
+        await loadRoutes();
+        
+        if (isTripActive) {
+            currentRouteId = localStorage.getItem('routify_active_route_id');
+            document.getElementById('route-select').value = currentRouteId;
+            document.getElementById('pre-trip-state').style.display = 'none';
+            document.getElementById('active-trip-state').style.display = 'block';
+            document.getElementById('nav-btn').style.display = 'flex';
+            document.getElementById('location-info').classList.add('show');
+            startDurationTimer();
+            startGpsTracking();
+            loadAttendance();
+        }
+
+        fetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } })
+          .then(r => r.json())
+          .then(students => { allStudents = students; if (!isTripActive) buildStudentList(students); })
+          .catch(() => buildStudentList([]));
+      }
+    }
+
+    if (checkAuth()) initApp();
+  </script>
+</body>
+</html>

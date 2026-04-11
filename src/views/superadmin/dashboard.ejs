@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Super Admin Dashboard | Routify</title>
+  <meta name="description" content="Super Admin Command Center for Routify school transport logic.">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --surface2: #f8fafc;
+      --border: #e2e8f0;
+      --primary: #2563eb;
+      --primary-light: #eff6ff;
+      --gold: #d97706;
+      --gold-light: #fffbeb;
+      --text: #0f172a;
+      --muted: #64748b;
+      --success: #16a34a;
+      --success-light: #f0fdf4;
+      --error: #dc2626;
+      --sidebar-w: 260px;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
+    
+    /* ─── Sidebar ─── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: #0f172a;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 100;
+    }
+    .sidebar-logo {
+      padding: 24px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-icon {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo-icon .material-symbols-outlined { font-size: 20px; color: white; }
+    .logo-text { font-size: 18px; font-weight: 900; color: white; letter-spacing: -0.3px; }
+    .logo-badge {
+      font-size: 9px; font-weight: 700; color: #fbbf24;
+      background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.3);
+      border-radius: 4px; padding: 2px 6px; letter-spacing: 0.05em;
+      margin-left: auto;
+    }
+
+    .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+    .nav-section-label {
+      font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.3);
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 8px 8px 4px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 12px; border-radius: 10px;
+      color: rgba(255,255,255,0.6); font-size: 14px; font-weight: 500;
+      text-decoration: none; cursor: pointer;
+      transition: all 0.15s; margin-bottom: 2px;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.07); color: white; }
+    .nav-item.active { background: rgba(59,130,246,0.2); color: #93c5fd; }
+    .nav-item.active .material-symbols-outlined { color: #60a5fa; }
+    .nav-item .material-symbols-outlined { font-size: 20px; }
+
+    .sidebar-footer {
+      padding: 16px 12px;
+      border-top: 1px solid rgba(255,255,255,0.07);
+    }
+    .admin-profile {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 10px;
+    }
+    .avatar {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; color: white; flex-shrink: 0;
+    }
+    .admin-info { flex: 1; min-width: 0; }
+    .admin-name { font-size: 13px; font-weight: 700; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .admin-role { font-size: 11px; color: rgba(255,255,255,0.4); }
+    .logout-btn {
+      background: none; border: none; cursor: pointer;
+      color: rgba(255,255,255,0.3); padding: 4px;
+      display: flex; align-items: center;
+      transition: color 0.15s;
+    }
+    .logout-btn:hover { color: #ef4444; }
+    .logout-btn .material-symbols-outlined { font-size: 20px; }
+
+    /* ─── Main ─── */
+    .main { margin-left: var(--sidebar-w); flex: 1; }
+    .topbar {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 16px 32px; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 50;
+    }
+    .topbar-title { font-size: 20px; font-weight: 800; }
+    .topbar-meta { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .system-status {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; font-weight: 600; color: var(--success);
+    }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--success);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    .content { padding: 32px; }
+
+    /* ─── Stat Cards ─── */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 28px; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+      padding: 24px; position: relative; overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+    .stat-card-accent {
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      border-radius: 16px 16px 0 0;
+    }
+    .stat-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 16px;
+    }
+    .stat-icon .material-symbols-outlined { font-size: 22px; }
+    .stat-value { font-size: 32px; font-weight: 900; line-height: 1; margin-bottom: 4px; }
+    .stat-label { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .stat-change {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 12px; font-weight: 600; margin-top: 8px;
+    }
+    .stat-change .material-symbols-outlined { font-size: 14px; }
+    .stat-change.up { color: var(--success); }
+    .stat-change.neutral { color: var(--muted); }
+
+    /* ─── Content Grid ─── */
+    .content-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+    .card-header {
+      padding: 20px 24px 16px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-title { font-size: 16px; font-weight: 800; }
+    .card-subtitle { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .card-body { padding: 20px 24px; }
+
+    /* ─── Institution List ─── */
+    .inst-list { }
+    .inst-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 24px; border-bottom: 1px solid var(--border);
+      transition: background 0.15s; cursor: pointer;
+    }
+    .inst-item:last-child { border-bottom: none; }
+    .inst-item:hover { background: var(--surface2); }
+    .inst-avatar {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; flex-shrink: 0;
+    }
+    .inst-info { flex: 1; min-width: 0; }
+    .inst-name { font-size: 14px; font-weight: 700; }
+    .inst-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .inst-stats { display: flex; gap: 16px; }
+    .inst-stat { text-align: right; }
+    .inst-stat-val { font-size: 13px; font-weight: 700; }
+    .inst-stat-lbl { font-size: 11px; color: var(--muted); }
+
+    /* ─── Activity Feed ─── */
+    .activity-item {
+      display: flex; gap: 12px; padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-dot {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 2px;
+    }
+    .activity-dot .material-symbols-outlined { font-size: 16px; }
+    .activity-text { font-size: 13px; font-weight: 500; line-height: 1.5; }
+    .activity-time { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* ─── Quick Actions ─── */
+    .quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .qa-btn {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+      cursor: pointer; transition: all 0.15s; text-decoration: none; color: var(--text);
+    }
+    .qa-btn:hover { border-color: var(--primary); background: var(--primary-light); }
+    .qa-btn .material-symbols-outlined { font-size: 22px; color: var(--primary); }
+    .qa-btn-label { font-size: 13px; font-weight: 700; }
+    .qa-btn-desc { font-size: 11px; color: var(--muted); }
+
+    /* ─── Loading skeleton ─── */
+    .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* Colors */
+    .blue-icon { background: #eff6ff; color: #2563eb; }
+    .green-icon { background: #f0fdf4; color: #16a34a; }
+    .purple-icon { background: #faf5ff; color: #7c3aed; }
+    .amber-icon { background: #fffbeb; color: #d97706; }
+    .blue-accent { background: linear-gradient(90deg, #3b82f6, #6366f1); }
+    .green-accent { background: linear-gradient(90deg, #22c55e, #16a34a); }
+    .purple-accent { background: linear-gradient(90deg, #a855f7, #7c3aed); }
+    .amber-accent { background: linear-gradient(90deg, #f59e0b, #d97706); }
+
+    /* ─── Hamburger + Mobile Sidebar ─────────────────── */
+    .menu-toggle {
+      display: none;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      color: var(--text);
+      align-items: center;
+    }
+    .menu-toggle .material-symbols-outlined { font-size: 22px; }
+    .sidebar-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 90;
+      backdrop-filter: blur(2px);
+    }
+    .sidebar-overlay.show { display: block; }
+
+    @media (max-width: 1024px) {
+      :root { --sidebar-w: 220px; }
+    }
+    @media (max-width: 768px) {
+      :root { --sidebar-w: 260px; }
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 110;
+      }
+      .sidebar.mobile-open { transform: translateX(0); }
+      .main { margin-left: 0 !important; }
+      .menu-toggle { display: flex; }
+      .topbar { padding: 12px 16px; gap: 12px; }
+      .content { padding: 16px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+      .content-grid { grid-template-columns: 1fr; }
+      .stat-value { font-size: 26px; }
+      .topbar-title { font-size: 17px; }
+      .system-status span:not(.status-dot) { display: none; }
+    }
+    @media (max-width: 480px) {
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .stat-card { padding: 16px; }
+      .stat-value { font-size: 22px; }
+      .stat-icon { width: 36px; height: 36px; margin-bottom: 10px; }
+      .stat-icon .material-symbols-outlined { font-size: 18px; }
+      .topbar-meta { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar overlay for mobile -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon"><span class="material-symbols-outlined">directions_bus</span></div>
+      <span class="logo-text">Routify</span>
+      <span class="logo-badge">SUDO</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Platform</div>
+      <a href="/superadmin/dashboard" class="nav-item active">
+        <span class="material-symbols-outlined">dashboard</span>
+        Dashboard
+      </a>
+      <a href="/superadmin/clients" class="nav-item">
+        <span class="material-symbols-outlined">corporate_fare</span>
+        Institutions
+      </a>
+      <a href="/superadmin/analytics" class="nav-item">
+        <span class="material-symbols-outlined">monitoring</span>
+        Analytics
+      </a>
+      <a href="/superadmin/system-health" class="nav-item">
+        <span class="material-symbols-outlined">health_metrics</span>
+        System Health
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="admin-profile">
+        <div class="avatar">SA</div>
+        <div class="admin-info">
+          <div class="admin-name" id="adminEmail">Super Admin</div>
+          <div class="admin-role">Platform Administrator</div>
+        </div>
+        <button class="logout-btn" title="Logout" onclick="logout()">
+          <span class="material-symbols-outlined">logout</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="menu-toggle" id="menuToggle" onclick="toggleSidebar()" aria-label="Toggle menu">
+          <span class="material-symbols-outlined">menu</span>
+        </button>
+        <div>
+          <div class="topbar-title">Command Center</div>
+          <div class="topbar-meta" id="dateDisplay">Loading...</div>
+        </div>
+      </div>
+      <div class="system-status">
+        <div class="status-dot"></div>
+        All Systems Operational
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-card-accent blue-accent"></div>
+          <div class="stat-icon blue-icon"><span class="material-symbols-outlined">corporate_fare</span></div>
+          <div class="stat-value" id="totalInstitutions">—</div>
+          <div class="stat-label">Total Institutions</div>
+          <div class="stat-change up" id="instChange">
+            <span class="material-symbols-outlined">trending_up</span> Loading...
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-accent green-accent"></div>
+          <div class="stat-icon green-icon"><span class="material-symbols-outlined">groups</span></div>
+          <div class="stat-value" id="totalStudents">—</div>
+          <div class="stat-label">Total Students</div>
+          <div class="stat-change neutral">Across all institutions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-accent purple-accent"></div>
+          <div class="stat-icon purple-icon"><span class="material-symbols-outlined">directions_bus</span></div>
+          <div class="stat-value" id="totalTrips">—</div>
+          <div class="stat-label">Completed Trips</div>
+          <div class="stat-change up" id="tripsChange">
+            <span class="material-symbols-outlined">local_activity</span> All time
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-accent amber-accent"></div>
+          <div class="stat-icon amber-icon"><span class="material-symbols-outlined">drive_eta</span></div>
+          <div class="stat-value" id="activeTrips">—</div>
+          <div class="stat-label">Live Active Trips</div>
+          <div class="stat-change up" id="liveChange">
+            <span class="material-symbols-outlined">radio_button_checked</span> Right now
+          </div>
+        </div>
+      </div>
+
+      <!-- Content Grid -->
+      <div class="content-grid">
+        <!-- Institutions Table -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Recent Institutions</div>
+              <div class="card-subtitle">Latest registered organizations</div>
+            </div>
+            <a href="/superadmin/clients" style="background:var(--primary);color:white;border:none;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:6px;">
+              <span class="material-symbols-outlined" style="font-size:16px">open_in_new</span>
+              View All
+            </a>
+          </div>
+          <div class="inst-list" id="institutionsList">
+            <div style="padding:40px;text-align:center;color:var(--muted);">Loading institutions...</div>
+          </div>
+        </div>
+
+        <!-- Right Column -->
+        <div style="display:flex;flex-direction:column;gap:20px;">
+          <!-- Quick Actions -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Quick Actions</div>
+            </div>
+            <div class="card-body">
+              <div class="quick-actions">
+                <a href="/superadmin/clients" class="qa-btn">
+                  <span class="material-symbols-outlined">add_business</span>
+                  <div class="qa-btn-label">Manage Orgs</div>
+                  <div class="qa-btn-desc">Add or remove</div>
+                </a>
+                <a href="/superadmin/analytics" class="qa-btn">
+                  <span class="material-symbols-outlined">monitoring</span>
+                  <div class="qa-btn-label">Analytics</div>
+                  <div class="qa-btn-desc">Platform stats</div>
+                </a>
+                <a href="/superadmin/system-health" class="qa-btn">
+                  <span class="material-symbols-outlined">health_metrics</span>
+                  <div class="qa-btn-label">System Health</div>
+                  <div class="qa-btn-desc">DB & services</div>
+                </a>
+                <a href="/login" class="qa-btn">
+                  <span class="material-symbols-outlined">login</span>
+                  <div class="qa-btn-label">Admin Login</div>
+                  <div class="qa-btn-desc">Institution panel</div>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Platform Summary -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Platform Summary</div>
+            </div>
+            <div class="card-body">
+              <div style="display:flex;flex-direction:column;gap:16px;" id="platformSummary">
+                <div style="color:var(--muted);text-align:center;padding:20px;">Loading...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('superadmin_token');
+    if (!token) window.location.href = '/superadmin/login';
+
+    // Show date
+    const now = new Date();
+    document.getElementById('dateDisplay').textContent = now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+    // Show admin email from token
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      document.getElementById('adminEmail').textContent = payload.email || 'Super Admin';
+    } catch(e){}
+
+    const headers = { 'Authorization': `Bearer ${token}` };
+    const colors = ['#3b82f6','#8b5cf6','#ec4899','#f59e0b','#10b981','#ef4444','#6366f1','#14b8a6'];
+
+    async function loadDashboard() {
+      try {
+        const [statsRes, instsRes] = await Promise.all([
+          fetch('/api/superadmin/stats', { headers }),
+          fetch('/api/superadmin/institutions?limit=6', { headers })
+        ]);
+
+        if (statsRes.status === 401 || instsRes.status === 401) {
+          localStorage.removeItem('superadmin_token');
+          window.location.href = '/superadmin/login';
+          return;
+        }
+
+        const stats = await statsRes.json();
+        const insts = await instsRes.json();
+
+        // Update stats
+        document.getElementById('totalInstitutions').textContent = stats.totalInstitutions ?? 0;
+        document.getElementById('totalStudents').textContent = stats.totalStudents ?? 0;
+        document.getElementById('totalTrips').textContent = (stats.totalTrips ?? 0).toLocaleString();
+        document.getElementById('activeTrips').textContent = stats.activeTrips ?? 0;
+
+        // Institutions list
+        const list = document.getElementById('institutionsList');
+        if (!insts.institutions || insts.institutions.length === 0) {
+          list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);">No institutions registered yet</div>';
+        } else {
+          list.innerHTML = insts.institutions.map((inst, i) => {
+            const initials = inst.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
+            const color = colors[i % colors.length];
+            const joined = inst.createdAt ? new Date(inst.createdAt).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : 'Unknown';
+            return `
+              <div class="inst-item" onclick="window.location.href='/superadmin/clients'">
+                <div class="inst-avatar" style="background:${color}20;color:${color};">${initials}</div>
+                <div class="inst-info">
+                  <div class="inst-name">${inst.name}</div>
+                  <div class="inst-meta">${inst.email} · Joined ${joined}</div>
+                </div>
+                <div class="inst-stats">
+                  <div class="inst-stat">
+                    <div class="inst-stat-val">${inst.studentCount || 0}</div>
+                    <div class="inst-stat-lbl">Students</div>
+                  </div>
+                  <div class="inst-stat">
+                    <div class="inst-stat-val">${inst.driverCount || 0}</div>
+                    <div class="inst-stat-lbl">Drivers</div>
+                  </div>
+                </div>
+              </div>`;
+          }).join('');
+        }
+
+        // Platform Summary
+        const summary = document.getElementById('platformSummary');
+        const summaryItems = [
+          { label: 'Total Drivers', val: stats.totalDrivers ?? 0, icon: 'person', color: '#3b82f6' },
+          { label: 'Total Vehicles', val: stats.totalVehicles ?? 0, icon: 'directions_bus', color: '#8b5cf6' },
+          { label: 'Total Routes', val: stats.totalRoutes ?? 0, icon: 'route', color: '#10b981' },
+          { label: 'Live Active Trips', val: stats.activeTrips ?? 0, icon: 'radio_button_checked', color: '#ef4444' },
+        ];
+        summary.innerHTML = summaryItems.map(item => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="material-symbols-outlined" style="font-size:20px;color:${item.color}">${item.icon}</span>
+              <span style="font-size:14px;font-weight:500;color:var(--muted)">${item.label}</span>
+            </div>
+            <span style="font-size:18px;font-weight:800;">${item.val}</span>
+          </div>`).join('').replace(/border-bottom:1px solid var\(--border\);" \/>.*?<\/div>$/, '');
+        
+        // Fix last item border
+        summary.innerHTML = summaryItems.map((item, i) => `
+          <div style="display:flex;align-items:center;justify-content:space-between;${i < summaryItems.length-1 ? 'padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:4px;' : ''}">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="material-symbols-outlined" style="font-size:20px;color:${item.color}">${item.icon}</span>
+              <span style="font-size:14px;font-weight:600;color:var(--muted)">${item.label}</span>
+            </div>
+            <span style="font-size:20px;font-weight:900;">${item.val.toLocaleString()}</span>
+          </div>`).join('');
+
+      } catch(err) {
+        console.error(err);
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('superadmin_token');
+      window.location.href = '/superadmin/login';
+    }
+
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('mobile-open');
+      document.getElementById('sidebarOverlay').classList.toggle('show');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('mobile-open');
+      document.getElementById('sidebarOverlay').classList.remove('show');
+    }
+
+    loadDashboard();
+    setInterval(loadDashboard, 30000); // refresh every 30s
+  </script>
+</body>
+</html>

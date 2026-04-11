@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Institutions | Routify Super Admin</title>
+  <meta name="description" content="Manage school institutions and clients for the Routify platform.">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f0f4f8; --surface: #ffffff; --surface2: #f8fafc;
+      --border: #e2e8f0; --primary: #2563eb; --primary-light: #eff6ff;
+      --text: #0f172a; --muted: #64748b; --success: #16a34a;
+      --error: #dc2626; --sidebar-w: 260px;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
+
+    .sidebar {
+      width: var(--sidebar-w); background: #0f172a;
+      display: flex; flex-direction: column;
+      position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+    }
+    .sidebar-logo {
+      padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.07);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .logo-icon { width: 40px; height: 40px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .logo-icon .material-symbols-outlined { font-size: 20px; color: white; }
+    .logo-text { font-size: 18px; font-weight: 900; color: white; }
+    .logo-badge { font-size: 9px; font-weight: 700; color: #fbbf24; background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.3); border-radius: 4px; padding: 2px 6px; letter-spacing: 0.05em; margin-left: auto; }
+
+    .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+    .nav-section-label { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.3); letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 8px 4px; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; color: rgba(255,255,255,0.6); font-size: 14px; font-weight: 500; text-decoration: none; transition: all 0.15s; margin-bottom: 2px; }
+    .nav-item:hover { background: rgba(255,255,255,0.07); color: white; }
+    .nav-item.active { background: rgba(59,130,246,0.2); color: #93c5fd; }
+    .nav-item .material-symbols-outlined { font-size: 20px; }
+
+    .sidebar-footer { padding: 16px 12px; border-top: 1px solid rgba(255,255,255,0.07); }
+    .admin-profile { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; }
+    .avatar { width: 36px; height: 36px; background: linear-gradient(135deg, #f59e0b, #ef4444); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: white; flex-shrink: 0; }
+    .admin-info { flex: 1; min-width: 0; }
+    .admin-name { font-size: 13px; font-weight: 700; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .admin-role { font-size: 11px; color: rgba(255,255,255,0.4); }
+    .logout-btn { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.3); padding: 4px; display: flex; align-items: center; transition: color 0.15s; }
+    .logout-btn:hover { color: #ef4444; }
+    .logout-btn .material-symbols-outlined { font-size: 20px; }
+
+    .main { margin-left: var(--sidebar-w); flex: 1; }
+    .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+    .topbar-left h1 { font-size: 20px; font-weight: 800; }
+    .topbar-left p { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    .btn-primary { background: var(--primary); color: white; border: none; border-radius: 10px; padding: 10px 20px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; font-family: 'Inter', sans-serif; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-primary .material-symbols-outlined { font-size: 18px; }
+
+    .content { padding: 28px 32px; }
+
+    /* Stats Row */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+    .stat-card-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+    .stat-card-value { font-size: 28px; font-weight: 900; }
+    .stat-card-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* Toolbar */
+    .toolbar { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 20px; display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .search-wrap { flex: 1; position: relative; }
+    .search-wrap .material-symbols-outlined { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--muted); }
+    .search-input { width: 100%; border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px 9px 38px; font-size: 14px; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.15s; }
+    .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+    /* Table */
+    .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--surface2); }
+    thead th { padding: 12px 20px; text-align: left; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; border-bottom: 1px solid var(--border); }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: 14px 20px; font-size: 14px; vertical-align: middle; }
+
+    .inst-cell { display: flex; align-items: center; gap: 12px; }
+    .inst-av { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex-shrink: 0; }
+    .inst-cell-name { font-weight: 700; font-size: 14px; }
+    .inst-cell-email { font-size: 12px; color: var(--muted); }
+
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 100px; font-size: 11px; font-weight: 700; }
+    .badge-active { background: #dcfce7; color: #15803d; }
+    .badge-new { background: #eff6ff; color: #1d4ed8; }
+
+    .action-btn { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px; cursor: pointer; color: var(--muted); display: flex; align-items: center; transition: all 0.15s; }
+    .action-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+    .action-btn.danger:hover { border-color: var(--error); color: var(--error); background: #fef2f2; }
+    .action-btn .material-symbols-outlined { font-size: 16px; }
+
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 200; display: none; align-items: center; justify-content: center; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: var(--surface); border-radius: 20px; padding: 32px; width: 100%; max-width: 480px; box-shadow: 0 25px 50px rgba(0,0,0,0.15); position: relative; }
+    .modal-title { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+    .modal-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+    .field-group { margin-bottom: 16px; }
+    .field-group label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+    .field-group input { width: 100%; border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; font-size: 14px; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.15s; }
+    .field-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+    .btn-cancel { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); border-radius: 10px; padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; }
+    .btn-cancel:hover { background: var(--border); }
+
+    .error-msg { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--error); display: none; margin-bottom: 16px; align-items: center; gap: 8px; }
+    .error-msg.show { display: flex; }
+
+    /* Detail Panel */
+    .detail-panel { position: fixed; top: 0; right: -480px; width: 480px; height: 100vh; background: var(--surface); border-left: 1px solid var(--border); z-index: 150; transition: right 0.3s ease; overflow-y: auto; }
+    .detail-panel.open { right: 0; }
+    .detail-header { padding: 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--surface); }
+    .detail-title { font-size: 18px; font-weight: 800; }
+    .close-panel { background: none; border: none; cursor: pointer; color: var(--muted); display: flex; align-items: center; }
+    .close-panel .material-symbols-outlined { font-size: 24px; }
+    .close-panel:hover { color: var(--text); }
+    .panel-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 140; display: none; }
+    .panel-overlay.show { display: block; }
+    .detail-body { padding: 24px; }
+    .detail-stat { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); }
+    .detail-stat:last-child { border-bottom: none; }
+    .detail-stat-label { font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+    .detail-stat-label .material-symbols-outlined { font-size: 18px; color: var(--primary); }
+    .detail-stat-value { font-size: 14px; font-weight: 700; }
+    .section-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 20px 0 12px; }
+
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #0f172a; color: white; border-radius: 12px; padding: 14px 20px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; transform: translateY(80px); opacity: 0; transition: all 0.3s; z-index: 300; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { background: #0f172a; border-left: 4px solid #22c55e; }
+    .toast.error { background: #0f172a; border-left: 4px solid #ef4444; }
+
+    .empty-state { padding: 60px 24px; text-align: center; color: var(--muted); }
+    .empty-state .material-symbols-outlined { font-size: 48px; margin-bottom: 12px; opacity: 0.4; }
+    .empty-state h3 { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+
+    .delete-confirm { background: #fef2f2; border: 1px solid #fecaca; border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+    .delete-confirm p { font-size: 14px; color: #7f1d1d; }
+    .delete-confirm strong { color: var(--error); }
+
+    .colors-arr { --c0:#3b82f6;--c1:#8b5cf6;--c2:#ec4899;--c3:#f59e0b;--c4:#10b981;--c5:#ef4444;--c6:#6366f1;--c7:#14b8a6; }
+
+    /* ─── Hamburger + Mobile Sidebar ───────────────────── */
+    .menu-toggle {
+      display: none;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      color: var(--text);
+      align-items: center;
+    }
+    .menu-toggle .material-symbols-outlined { font-size: 22px; }
+    .sidebar-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 90;
+      backdrop-filter: blur(2px);
+    }
+    .sidebar-overlay.show { display: block; }
+
+    @media (max-width: 1024px) {
+      :root { --sidebar-w: 220px; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      :root { --sidebar-w: 260px; }
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 110;
+      }
+      .sidebar.mobile-open { transform: translateX(0); }
+      .main { margin-left: 0 !important; }
+      .menu-toggle { display: flex; }
+      .topbar { padding: 12px 16px; gap: 12px; flex-wrap: wrap; }
+      .topbar .btn-primary span:last-child { display: none; }
+      .content { padding: 16px; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+      .stat-card-value { font-size: 24px; }
+      .table-card { overflow-x: auto; }
+      table { min-width: 600px; }
+      .toolbar { flex-wrap: wrap; }
+      .search-wrap { width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .stats-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .stat-card { padding: 14px; }
+      .stat-card-value { font-size: 20px; }
+      .topbar-left h1 { font-size: 17px; }
+      .topbar-left p { display: none; }
+      .detail-panel { width: 100%; }
+    }
+  </style>
+</head>
+<body class="colors-arr">
+  <!-- Sidebar overlay for mobile -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon"><span class="material-symbols-outlined">directions_bus</span></div>
+      <span class="logo-text">Routify</span>
+      <span class="logo-badge">SUDO</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Platform</div>
+      <a href="/superadmin/dashboard" class="nav-item">
+        <span class="material-symbols-outlined">dashboard</span>Dashboard
+      </a>
+      <a href="/superadmin/clients" class="nav-item active">
+        <span class="material-symbols-outlined">corporate_fare</span>Institutions
+      </a>
+      <a href="/superadmin/analytics" class="nav-item">
+        <span class="material-symbols-outlined">monitoring</span>Analytics
+      </a>
+      <a href="/superadmin/system-health" class="nav-item">
+        <span class="material-symbols-outlined">health_metrics</span>System Health
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="admin-profile">
+        <div class="avatar">SA</div>
+        <div class="admin-info">
+          <div class="admin-name" id="adminEmail">Super Admin</div>
+          <div class="admin-role">Platform Administrator</div>
+        </div>
+        <button class="logout-btn" onclick="logout()">
+          <span class="material-symbols-outlined">logout</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left" style="display:flex;align-items:center;gap:12px;">
+        <button class="menu-toggle" id="menuToggle" onclick="toggleSidebar()" aria-label="Toggle menu">
+          <span class="material-symbols-outlined">menu</span>
+        </button>
+        <div>
+          <h1>Institution Management</h1>
+          <p>Manage all registered organizations on the platform</p>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="openAddModal()">
+        <span class="material-symbols-outlined">add</span>
+        Add Institution
+      </button>
+    </div>
+
+    <div class="content">
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-card-label">Total Institutions</div>
+          <div class="stat-card-value" id="statsTotal">—</div>
+          <div class="stat-card-sub">Registered on platform</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Total Students</div>
+          <div class="stat-card-value" id="statsStudents">—</div>
+          <div class="stat-card-sub">Across all institutions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Total Drivers</div>
+          <div class="stat-card-value" id="statsDrivers">—</div>
+          <div class="stat-card-sub">Registered drivers</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Active Trips</div>
+          <div class="stat-card-value" id="statsTrips">—</div>
+          <div class="stat-card-sub">Right now</div>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" class="search-input" id="searchInput" placeholder="Search by name or email..." oninput="filterInstitutions()"/>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>Institution</th>
+              <th>Joined</th>
+              <th>Students</th>
+              <th>Drivers</th>
+              <th>Vehicles</th>
+              <th>Status</th>
+              <th style="text-align:right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr><td colspan="7" style="text-align:center;padding:48px;color:var(--muted);">Loading institutions...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Institution Modal -->
+  <div class="modal-overlay" id="addModal">
+    <div class="modal">
+      <div class="modal-title">Add New Institution</div>
+      <div class="modal-sub">Register a new school or organization on Routify</div>
+      <div class="error-msg" id="addError">
+        <span class="material-symbols-outlined" style="font-size:16px">error</span>
+        <span id="addErrorMsg"></span>
+      </div>
+      <div class="field-group">
+        <label>Institution Name *</label>
+        <input type="text" id="addName" placeholder="e.g. Greenfield Academy"/>
+      </div>
+      <div class="field-group">
+        <label>Admin Email *</label>
+        <input type="email" id="addEmail" placeholder="admin@school.edu"/>
+      </div>
+      <div class="field-group">
+        <label>Admin Password *</label>
+        <input type="password" id="addPassword" placeholder="Minimum 8 characters"/>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeAddModal()">Cancel</button>
+        <button class="btn-primary" id="addBtn" onclick="addInstitution()">
+          <span class="material-symbols-outlined">add</span>
+          Create Institution
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal">
+      <div class="modal-title">Delete Institution</div>
+      <div class="delete-confirm">
+        <p>⚠️ This will permanently delete <strong id="deleteName"></strong> and ALL associated data including students, routes, drivers, vehicles, and trips. This cannot be undone.</p>
+      </div>
+      <div class="error-msg" id="deleteError">
+        <span class="material-symbols-outlined" style="font-size:16px">error</span>
+        <span id="deleteErrorMsg"></span>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:13px;font-weight:600;color:var(--muted);display:block;margin-bottom:6px;">Type the institution name to confirm:</label>
+        <input type="text" id="deleteConfirmInput" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:14px;font-family:'Inter',sans-serif;outline:none;" placeholder="Type name to confirm"/>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+        <button style="background:#dc2626;color:white;border:none;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:6px;" id="deleteBtn" onclick="confirmDelete()">
+          <span class="material-symbols-outlined" style="font-size:18px">delete_forever</span>
+          Delete Forever
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Panel -->
+  <div class="panel-overlay" id="panelOverlay" onclick="closePanel()"></div>
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-header">
+      <div class="detail-title" id="panelTitle">Institution Details</div>
+      <button class="close-panel" onclick="closePanel()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="detail-body" id="panelBody">
+      <div style="text-align:center;color:var(--muted);padding:40px;">Loading...</div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <span class="material-symbols-outlined" id="toastIcon">check_circle</span>
+    <span id="toastMsg"></span>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('superadmin_token');
+    if (!token) window.location.href = '/superadmin/login';
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      document.getElementById('adminEmail').textContent = payload.email || 'Super Admin';
+    } catch(e){}
+
+    const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+    const COLORS = ['#3b82f6','#8b5cf6','#ec4899','#f59e0b','#10b981','#ef4444','#6366f1','#14b8a6'];
+    let allInstitutions = [];
+    let deleteTargetId = null;
+    let deleteTargetName = null;
+
+    function logout() {
+      localStorage.removeItem('superadmin_token');
+      window.location.href = '/superadmin/login';
+    }
+
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('mobile-open');
+      document.getElementById('sidebarOverlay').classList.toggle('show');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('mobile-open');
+      document.getElementById('sidebarOverlay').classList.remove('show');
+    }
+
+    function toast(msg, type='success') {
+      const t = document.getElementById('toast');
+      const icon = document.getElementById('toastIcon');
+      document.getElementById('toastMsg').textContent = msg;
+      t.className = `toast ${type}`;
+      icon.textContent = type === 'success' ? 'check_circle' : 'error';
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    async function loadData() {
+      try {
+        const [statsRes, instsRes] = await Promise.all([
+          fetch('/api/superadmin/stats', { headers }),
+          fetch('/api/superadmin/institutions', { headers })
+        ]);
+
+        if (statsRes.status === 401) { logout(); return; }
+
+        const stats = await statsRes.json();
+        const insts = await instsRes.json();
+
+        document.getElementById('statsTotal').textContent = stats.totalInstitutions ?? 0;
+        document.getElementById('statsStudents').textContent = stats.totalStudents ?? 0;
+        document.getElementById('statsDrivers').textContent = stats.totalDrivers ?? 0;
+        document.getElementById('statsTrips').textContent = stats.activeTrips ?? 0;
+
+        allInstitutions = insts.institutions || [];
+        renderTable(allInstitutions);
+      } catch(e) { console.error(e); }
+    }
+
+    function getInitials(name) {
+      return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
+    }
+    function getColor(name) {
+      let hash = 0;
+      for (let c of name) hash = (hash * 31 + c.charCodeAt(0)) & 0xffffffff;
+      return COLORS[Math.abs(hash) % COLORS.length];
+    }
+
+    function renderTable(institutions) {
+      const tbody = document.getElementById('tableBody');
+      if (!institutions.length) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="material-symbols-outlined">corporate_fare</span><h3>No institutions yet</h3><p>Add the first institution to get started</p></div></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = institutions.map(inst => {
+        const color = getColor(inst.name);
+        const initials = getInitials(inst.name);
+        const joined = inst.createdAt ? new Date(inst.createdAt).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : '—';
+        const ageMs = Date.now() - new Date(inst.createdAt || 0).getTime();
+        const isNew = ageMs < 7 * 24 * 60 * 60 * 1000;
+        return `
+          <tr>
+            <td>
+              <div class="inst-cell">
+                <div class="inst-av" style="background:${color}20;color:${color}">${initials}</div>
+                <div>
+                  <div class="inst-cell-name">${inst.name}</div>
+                  <div class="inst-cell-email">${inst.email}</div>
+                </div>
+              </div>
+            </td>
+            <td style="color:var(--muted);font-size:13px">${joined}</td>
+            <td><span style="font-weight:700">${inst.studentCount || 0}</span></td>
+            <td><span style="font-weight:700">${inst.driverCount || 0}</span></td>
+            <td><span style="font-weight:700">${inst.vehicleCount || 0}</span></td>
+            <td>
+              ${isNew
+                ? '<span class="badge badge-new">✦ New</span>'
+                : '<span class="badge badge-active">● Active</span>'
+              }
+            </td>
+            <td style="text-align:right">
+              <div style="display:flex;gap:6px;justify-content:flex-end">
+                <button class="action-btn" title="View Details" onclick="viewDetail('${inst._id}')">
+                  <span class="material-symbols-outlined">open_in_new</span>
+                </button>
+                <button class="action-btn danger" title="Delete" onclick="openDeleteModal('${inst._id}', \`${inst.name.replace(/`/g, '')}\`)">
+                  <span class="material-symbols-outlined">delete</span>
+                </button>
+              </div>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    function filterInstitutions() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const filtered = allInstitutions.filter(i =>
+        i.name.toLowerCase().includes(q) || i.email.toLowerCase().includes(q)
+      );
+      renderTable(filtered);
+    }
+
+    // Add Institution
+    function openAddModal() {
+      document.getElementById('addName').value = '';
+      document.getElementById('addEmail').value = '';
+      document.getElementById('addPassword').value = '';
+      document.getElementById('addError').classList.remove('show');
+      document.getElementById('addModal').classList.add('show');
+    }
+    function closeAddModal() {
+      document.getElementById('addModal').classList.remove('show');
+    }
+    document.getElementById('addModal').addEventListener('click', e => {
+      if (e.target === document.getElementById('addModal')) closeAddModal();
+    });
+
+    async function addInstitution() {
+      const name = document.getElementById('addName').value.trim();
+      const email = document.getElementById('addEmail').value.trim();
+      const password = document.getElementById('addPassword').value;
+      const errBox = document.getElementById('addError');
+      const errMsg = document.getElementById('addErrorMsg');
+      const btn = document.getElementById('addBtn');
+
+      if (!name || !email || !password) {
+        errMsg.textContent = 'All fields are required';
+        errBox.classList.add('show'); return;
+      }
+      if (password.length < 8) {
+        errMsg.textContent = 'Password must be at least 8 characters';
+        errBox.classList.add('show'); return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Creating...';
+      errBox.classList.remove('show');
+
+      try {
+        const res = await fetch('/api/superadmin/institutions', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ name, email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          errMsg.textContent = data.error || 'Failed to create institution';
+          errBox.classList.add('show');
+        } else {
+          closeAddModal();
+          toast('Institution created successfully!');
+          loadData();
+        }
+      } catch(e) {
+        errMsg.textContent = 'Network error';
+        errBox.classList.add('show');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined">add</span>Create Institution';
+      }
+    }
+
+    // Delete
+    function openDeleteModal(id, name) {
+      deleteTargetId = id;
+      deleteTargetName = name;
+      document.getElementById('deleteName').textContent = name;
+      document.getElementById('deleteConfirmInput').value = '';
+      document.getElementById('deleteError').classList.remove('show');
+      document.getElementById('deleteModal').classList.add('show');
+    }
+    function closeDeleteModal() {
+      document.getElementById('deleteModal').classList.remove('show');
+      deleteTargetId = null; deleteTargetName = null;
+    }
+    document.getElementById('deleteModal').addEventListener('click', e => {
+      if (e.target === document.getElementById('deleteModal')) closeDeleteModal();
+    });
+
+    async function confirmDelete() {
+      const input = document.getElementById('deleteConfirmInput').value.trim();
+      const errBox = document.getElementById('deleteError');
+      const errMsg = document.getElementById('deleteErrorMsg');
+
+      if (input !== deleteTargetName) {
+        errMsg.textContent = 'Institution name does not match. Please type the exact name.';
+        errBox.classList.add('show'); return;
+      }
+
+      const btn = document.getElementById('deleteBtn');
+      btn.disabled = true;
+      btn.textContent = 'Deleting...';
+      errBox.classList.remove('show');
+
+      try {
+        const res = await fetch(`/api/superadmin/institutions/${deleteTargetId}`, {
+          method: 'DELETE', headers
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          errMsg.textContent = data.error || 'Failed to delete';
+          errBox.classList.add('show');
+        } else {
+          closeDeleteModal();
+          toast('Institution deleted permanently', 'success');
+          loadData();
+        }
+      } catch(e) {
+        errMsg.textContent = 'Network error';
+        errBox.classList.add('show');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">delete_forever</span>Delete Forever';
+      }
+    }
+
+    // Detail Panel
+    async function viewDetail(id) {
+      const panel = document.getElementById('detailPanel');
+      const overlay = document.getElementById('panelOverlay');
+      panel.classList.add('open');
+      overlay.classList.add('show');
+      document.getElementById('panelBody').innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px;">Loading...</div>';
+
+      try {
+        const res = await fetch(`/api/superadmin/institutions/${id}`, { headers });
+        const data = await res.json();
+        const inst = data.institution;
+        if (!inst) { document.getElementById('panelBody').innerHTML = '<p style="color:red;padding:24px;">Not found</p>'; return; }
+
+        const color = getColor(inst.name);
+        const initials = getInitials(inst.name);
+        const joined = inst.createdAt ? new Date(inst.createdAt).toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) : '—';
+
+        document.getElementById('panelTitle').textContent = inst.name;
+        document.getElementById('panelBody').innerHTML = `
+          <div style="display:flex;align-items:center;gap:16px;padding:20px;background:${color}10;border-radius:14px;margin-bottom:20px;">
+            <div style="width:56px;height:56px;border-radius:14px;background:${color}20;color:${color};display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;">${initials}</div>
+            <div>
+              <div style="font-size:18px;font-weight:800">${inst.name}</div>
+              <div style="font-size:13px;color:var(--muted)">${inst.email}</div>
+            </div>
+          </div>
+
+          <div class="section-title">Institution Stats</div>
+          <div>
+            ${[
+              { icon:'groups', label:'Students', val: data.stats?.students ?? 0 },
+              { icon:'person', label:'Drivers', val: data.stats?.drivers ?? 0 },
+              { icon:'directions_bus', label:'Vehicles', val: data.stats?.vehicles ?? 0 },
+              { icon:'route', label:'Routes', val: data.stats?.routes ?? 0 },
+              { icon:'local_activity', label:'Total Trips', val: data.stats?.trips ?? 0 },
+              { icon:'radio_button_checked', label:'Active Trips', val: data.stats?.activeTrips ?? 0 },
+            ].map(s => `
+              <div class="detail-stat">
+                <div class="detail-stat-label">
+                  <span class="material-symbols-outlined">${s.icon}</span>${s.label}
+                </div>
+                <div class="detail-stat-value">${s.val}</div>
+              </div>`).join('')}
+          </div>
+
+          <div class="section-title">Details</div>
+          <div>
+            <div class="detail-stat">
+              <div class="detail-stat-label"><span class="material-symbols-outlined">calendar_today</span>Registered</div>
+              <div class="detail-stat-value" style="font-size:12px">${joined}</div>
+            </div>
+            <div class="detail-stat">
+              <div class="detail-stat-label"><span class="material-symbols-outlined">fingerprint</span>Institution ID</div>
+              <div class="detail-stat-value" style="font-size:11px;font-family:monospace;color:var(--muted)">${inst._id}</div>
+            </div>
+          </div>
+
+          <div style="margin-top:24px;display:flex;flex-direction:column;gap:10px;">
+            <button onclick="openDeleteModal('${inst._id}', \`${inst.name.replace(/`/g, '')}\`);closePanel();" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;">
+              <span class="material-symbols-outlined" style="font-size:18px">delete_forever</span>
+              Delete Institution
+            </button>
+          </div>`;
+      } catch(e) {
+        document.getElementById('panelBody').innerHTML = '<p style="color:red;padding:24px;">Failed to load details</p>';
+      }
+    }
+
+    function closePanel() {
+      document.getElementById('detailPanel').classList.remove('open');
+      document.getElementById('panelOverlay').classList.remove('show');
+    }
+
+    loadData();
+  </script>
+</body>
+</html>

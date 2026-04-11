@@ -1,0 +1,5 @@
+{
+  "name": "Routify",
+  "description": "Real-time school transport management platform for admins, drivers, and parents.",
+  "requestFramePermissions": ["geolocation"]
+}

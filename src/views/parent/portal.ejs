@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title><%= title %></title>
+  <meta name="description" content="Track your child's school bus in real-time with Routify's parent portal.">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,0&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --surface2: #f8fafc;
+      --border: #e2e8f0;
+      --primary: #2563eb;
+      --primary-light: #eff6ff;
+      --primary-border: #bfdbfe;
+      --text: #0f172a;
+      --muted: #64748b;
+      --success: #16a34a;
+      --success-light: #f0fdf4;
+      --warning: #d97706;
+      --warning-light: #fffbeb;
+    }
+
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+
+    /* ─── Loading ─── */
+    #loading-state {
+      position: fixed; inset: 0; z-index: 200;
+      background: var(--surface); display: flex; align-items: center; justify-content: center;
+    }
+    .spinner {
+      width: 44px; height: 44px;
+      border: 3px solid rgba(37,99,235,0.15);
+      border-top-color: var(--primary);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Error ─── */
+    #error-state { display: none; min-height: 100vh; align-items: center; justify-content: center; padding: 32px; text-align: center; background: var(--bg); }
+    #error-state.show { display: flex; flex-direction: column; }
+
+    /* ─── App ─── */
+    #app { display: none; }
+    #app.ready { display: block; animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .portal-wrap { max-width: 680px; margin: 0 auto; padding-bottom: 40px; }
+
+    /* ─── Header ─── */
+    .portal-header {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 30; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-icon {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, #2563eb, #4f46e5);
+      border-radius: 11px; display: flex; align-items: center; justify-content: center;
+    }
+    .brand-icon .material-symbols-outlined { font-size: 20px; color: white; }
+    .brand-tag { font-size: 10px; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.15em; }
+    .brand-school { font-size: 14px; font-weight: 800; color: var(--text); }
+
+    .live-pill {
+      display: flex; align-items: center; gap: 5px;
+      padding: 5px 11px; border-radius: 100px;
+      background: var(--surface2); border: 1px solid var(--border);
+      font-size: 11px; font-weight: 700; color: var(--muted);
+    }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+    .live-pill.live { background: var(--success-light); border-color: #bbf7d0; color: var(--success); }
+    .live-pill.live .live-dot { background: var(--success); animation: pd 1.5s ease-in-out infinite; }
+    @keyframes pd { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+
+    /* ─── Content ─── */
+    .portal-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* ─── Notice ─── */
+    .notice-card {
+      background: var(--warning-light); border: 1px solid #fde68a; border-left: 3px solid var(--warning);
+      border-radius: 12px; padding: 12px 14px;
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    }
+    .notice-lbl { font-size: 10px; font-weight: 800; color: var(--warning); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 3px; }
+    .notice-title { font-size: 13px; font-weight: 700; }
+    .notice-msg { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .notice-x { background: none; border: none; cursor: pointer; color: var(--muted); padding: 2px; }
+    .notice-x:hover { color: var(--text); }
+    .notice-x .material-symbols-outlined { font-size: 16px; }
+
+    /* ─── Attendance ─── */
+    .att-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .att-emoji { font-size: 26px; width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--surface2); }
+    .att-lbl { font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 3px; }
+    .att-status { font-size: 15px; font-weight: 800; }
+
+    /* ─── Hero card ─── */
+    .hero-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 20px; overflow: hidden;
+    }
+    .student-name { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 6px; }
+    .route-pill {
+      display: inline-block;
+      background: var(--primary-light); border: 1px solid var(--primary-border);
+      color: var(--primary); font-size: 11px; font-weight: 700;
+      padding: 3px 10px; border-radius: 100px;
+    }
+
+    /* ─── ETA grid ─── */
+    .eta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+    .eta-blue {
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      border-radius: 16px; padding: 16px;
+      box-shadow: 0 6px 20px rgba(37,99,235,0.25);
+    }
+    .eta-gray { background: var(--surface2); border: 1px solid var(--border); border-radius: 16px; padding: 16px; }
+    .eta-lbl { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+    .eta-val { font-size: 34px; font-weight: 900; line-height: 1; }
+    .eta-unit { font-size: 12px; font-weight: 600; margin-left: 3px; opacity: 0.7; }
+
+    /* ─── Stop row ─── */
+    .stop-row {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 14px; padding: 13px;
+    }
+    .stop-icon { width: 40px; height: 40px; border-radius: 11px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .stop-icon .material-symbols-outlined { font-size: 20px; color: var(--primary); }
+    .stop-lbl { font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 3px; }
+    .stop-text { font-size: 13px; font-weight: 700; }
+    .pin-edit-btn {
+      margin-left: auto; flex-shrink: 0;
+      width: 34px; height: 34px; border-radius: 10px;
+      background: var(--primary-light); border: 1px solid var(--primary-border);
+      cursor: pointer; color: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .pin-edit-btn:hover { background: #dbeafe; }
+    .pin-edit-btn .material-symbols-outlined { font-size: 18px; }
+
+    /* ─── Pin prompt banner ─── */
+    .pin-prompt-bar {
+      background: var(--primary-light); border: 1px solid var(--primary-border);
+      border-radius: 14px; padding: 12px 14px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .pin-prompt-bar .material-symbols-outlined { font-size: 18px; color: var(--primary); flex-shrink: 0; }
+    .pin-prompt-txt { font-size: 12px; font-weight: 600; color: #1e40af; flex: 1; }
+    .pin-now-btn {
+      background: var(--primary); border: none; border-radius: 8px;
+      padding: 6px 14px; color: white; font-size: 12px; font-weight: 700;
+      cursor: pointer; white-space: nowrap; font-family: 'Inter', sans-serif;
+    }
+
+    /* ─── Live Map Card ─── */
+    .map-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+    .map-card-header { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+    .map-card-title { font-size: 14px; font-weight: 800; }
+    .map-card-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    #map { height: 280px; }
+
+    /* ─── Stats row ─── */
+    .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 15px; }
+    .stat-micro { font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+    .stat-inner { display: flex; align-items: center; gap: 10px; }
+    .stat-icon { width: 34px; height: 34px; border-radius: 9px; background: var(--surface2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .stat-icon .material-symbols-outlined { font-size: 17px; color: var(--muted); }
+    .stat-main { font-size: 13px; font-weight: 800; }
+    .stat-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+    /* ═══════════════════════════════════════════════
+       PIN MODAL — Full screen overlay with own map
+    ═══════════════════════════════════════════════ */
+    .pin-modal {
+      display: none;
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(15,23,42,0.6);
+      backdrop-filter: blur(6px);
+      flex-direction: column;
+    }
+    .pin-modal.open { display: flex; }
+    .pin-modal-inner {
+      background: var(--surface);
+      flex: 1; display: flex; flex-direction: column;
+      max-width: 600px; width: 100%; margin: 0 auto;
+    }
+
+    /* Header bar inside modal */
+    .pin-modal-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .pin-modal-title { font-size: 17px; font-weight: 900; }
+    .pin-modal-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .pin-modal-close {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--surface2); border: 1px solid var(--border);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .pin-modal-close:hover { background: var(--border); }
+    .pin-modal-close .material-symbols-outlined { font-size: 18px; color: var(--muted); }
+
+    /* Instruction bar */
+    .pin-instruction {
+      background: var(--primary-light); border-bottom: 1px solid var(--primary-border);
+      padding: 10px 20px; display: flex; align-items: center; gap: 8px;
+      flex-shrink: 0;
+    }
+    .pin-instruction .material-symbols-outlined { font-size: 18px; color: var(--primary); }
+    .pin-instruction p { font-size: 13px; font-weight: 600; color: #1e40af; }
+
+    /* Map inside modal — fills remaining space */
+    .pin-map-wrap {
+      flex: 1; position: relative; min-height: 250px;
+    }
+    #pin-map { height: 100%; width: 100%; }
+
+    /* Fixed crosshair at exact center of pin-map */
+    .pin-crosshair {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -100%);
+      pointer-events: none; z-index: 20;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .crosshair-ring {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 16px rgba(37,99,235,0.5);
+      animation: bounce-pin 0.8s ease-in-out infinite alternate;
+    }
+    @keyframes bounce-pin { from { transform: translateY(0); } to { transform: translateY(-6px); } }
+    .crosshair-ring .material-symbols-outlined { font-size: 22px; color: white; }
+    .crosshair-stem {
+      width: 2px; height: 14px;
+      background: linear-gradient(var(--primary), transparent);
+    }
+    .crosshair-shadow {
+      width: 10px; height: 4px;
+      background: rgba(0,0,0,0.2); border-radius: 50%;
+      margin-top: 0;
+    }
+
+    /* Address preview bar */
+    .pin-addr-bar {
+      background: var(--surface); border-top: 1px solid var(--border);
+      padding: 10px 20px; flex-shrink: 0;
+      font-size: 12px; color: var(--muted);
+      min-height: 38px; display: flex; align-items: center; gap: 6px;
+    }
+    .pin-addr-bar .material-symbols-outlined { font-size: 16px; color: var(--primary); }
+    #pin-addr-text { font-weight: 600; color: var(--text); }
+
+    /* Action buttons at bottom */
+    .pin-modal-footer {
+      padding: 14px 20px; border-top: 1px solid var(--border);
+      display: flex; gap: 10px; flex-shrink: 0;
+      background: var(--surface);
+    }
+    .btn-cancel-pin {
+      flex: 1; padding: 12px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 12px; color: var(--text); font-size: 14px; font-weight: 700;
+      cursor: pointer; font-family: 'Inter', sans-serif; transition: background 0.15s;
+    }
+    .btn-cancel-pin:hover { background: var(--border); }
+    .btn-confirm-pin {
+      flex: 2; padding: 12px;
+      background: var(--primary); border: none;
+      border-radius: 12px; color: white; font-size: 14px; font-weight: 700;
+      cursor: pointer; font-family: 'Inter', sans-serif; transition: opacity 0.15s;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-confirm-pin:hover { opacity: 0.88; }
+    .btn-confirm-pin .material-symbols-outlined { font-size: 18px; }
+
+    /* ─── Toast ─── */
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: var(--text); color: white;
+      padding: 12px 20px; border-radius: 14px;
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 700; white-space: nowrap;
+      z-index: 1000; box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+      transition: transform 0.35s cubic-bezier(0.16,1,0.3,1), opacity 0.35s;
+      opacity: 0;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.success { background: var(--success); }
+    .toast .material-symbols-outlined { font-size: 18px; }
+
+    /* ─── Leaflet tiles ─── */
+    .leaflet-container { font-family: 'Inter', sans-serif !important; }
+    .bus-mk { background:#2563eb;color:white;padding:4px 10px;border-radius:14px;font-size:11px;font-weight:800;border:2px solid white;box-shadow:0 2px 10px rgba(37,99,235,0.4);white-space:nowrap; }
+    .stop-mk { background:#7c3aed;color:white;padding:4px 10px;border-radius:14px;font-size:11px;font-weight:800;border:2px solid white;box-shadow:0 2px 10px rgba(124,58,237,0.4);white-space:nowrap; }
+
+    @media(min-width:640px){
+      .portal-body{ padding: 22px 28px; }
+      .portal-header{ padding: 14px 28px; }
+      #map { height: 340px; }
+      .student-name { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading-state">
+  <div style="text-align:center">
+    <div class="spinner" style="margin:0 auto 14px"></div>
+    <p style="color:var(--muted);font-size:13px;font-weight:600">Connecting to fleet…</p>
+  </div>
+</div>
+
+<!-- Error -->
+<div id="error-state">
+  <div style="font-size:48px;margin-bottom:16px">🔒</div>
+  <h1 style="font-size:22px;font-weight:900;margin-bottom:10px">Link Expired</h1>
+  <p style="color:var(--muted);font-size:14px;line-height:1.6;max-width:280px;margin:0 auto 24px">This tracking portal is no longer available. Request a new link from your school admin.</p>
+  <a href="/" style="display:inline-block;padding:11px 22px;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-weight:700;font-size:14px;color:var(--text);text-decoration:none">← Back to Home</a>
+</div>
+
+<!-- Main App -->
+<div id="app">
+  <div class="portal-wrap">
+
+    <!-- Header -->
+    <header class="portal-header">
+      <div class="brand">
+        <div class="brand-icon"><span class="material-symbols-outlined">directions_bus</span></div>
+        <div>
+          <div class="brand-tag">Routify Parent Portal</div>
+          <div class="brand-school" id="hdr-school">—</div>
+        </div>
+      </div>
+      <div class="live-pill" id="live-pill">
+        <div class="live-dot" id="live-dot"></div>
+        <span id="live-txt">Offline</span>
+      </div>
+    </header>
+
+    <div class="portal-body">
+
+      <!-- Notices -->
+      <div id="notices-wrap"></div>
+
+      <!-- Attendance -->
+      <div class="att-card" id="att-card" style="display:none">
+        <div class="att-emoji" id="att-emoji">⏳</div>
+        <div>
+          <div class="att-lbl">Student Status</div>
+          <div class="att-status" id="att-status">Waiting for Bus</div>
+        </div>
+      </div>
+
+      <!-- Pin Prompt (shows when no location) -->
+      <div class="pin-prompt-bar" id="pin-prompt" style="display:none">
+        <span class="material-symbols-outlined">info</span>
+        <span class="pin-prompt-txt">Pin your pickup stop so the driver knows exactly where to stop.</span>
+        <button class="pin-now-btn" onclick="openPinModal()">📍 Pin Now</button>
+      </div>
+
+      <!-- Hero Card -->
+      <div class="hero-card">
+        <div style="margin-bottom:16px">
+          <div class="student-name" id="student-name">—</div>
+          <span class="route-pill" id="route-badge">Route</span>
+        </div>
+
+        <div class="eta-grid">
+          <div class="eta-blue">
+            <div class="eta-lbl" style="color:rgba(255,255,255,0.7)">Time to Stop</div>
+            <div><span class="eta-val" style="color:white" id="eta-val">—</span><span class="eta-unit" style="color:rgba(255,255,255,0.8)">min</span></div>
+          </div>
+          <div class="eta-gray">
+            <div class="eta-lbl" style="color:var(--muted)">Distance</div>
+            <div><span class="eta-val" id="dist-val">—</span><span class="eta-unit" style="color:var(--muted)">km</span></div>
+          </div>
+        </div>
+
+        <div class="stop-row">
+          <div class="stop-icon"><span class="material-symbols-outlined">location_pin</span></div>
+          <div style="flex:1;min-width:0">
+            <div class="stop-lbl">Pickup Location</div>
+            <div class="stop-text" id="pickup-txt">Not pinpointed — tap to set</div>
+          </div>
+          <button class="pin-edit-btn" onclick="openPinModal()" title="Set pickup location">
+            <span class="material-symbols-outlined">edit_location</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Map -->
+      <div class="map-card">
+        <div class="map-card-header">
+          <div>
+            <div class="map-card-title">Live Fleet Map</div>
+            <div class="map-card-sub">Real-time bus position</div>
+          </div>
+        </div>
+        <div id="map"></div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-micro">Vehicle</div>
+          <div class="stat-inner">
+            <div class="stat-icon"><span class="material-symbols-outlined">airport_shuttle</span></div>
+            <div>
+              <div class="stat-main" id="veh-plate">—</div>
+              <div class="stat-sub" id="veh-model">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-micro">Driver</div>
+          <div class="stat-inner">
+            <div class="stat-icon"><span class="material-symbols-outlined">person</span></div>
+            <div>
+              <div class="stat-main" id="drv-name">—</div>
+              <div class="stat-sub">Assigned</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- portal-body -->
+  </div><!-- portal-wrap -->
+</div><!-- app -->
+
+<!-- ═══ PIN LOCATION MODAL ═══ -->
+<div class="pin-modal" id="pin-modal">
+  <div class="pin-modal-inner">
+
+    <div class="pin-modal-header">
+      <div>
+        <div class="pin-modal-title">📍 Pin Your Pickup Stop</div>
+        <div class="pin-modal-sub">Drag the map so the pin points to your exact stop</div>
+      </div>
+      <button class="pin-modal-close" onclick="closePinModal()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="pin-instruction">
+      <span class="material-symbols-outlined">touch_app</span>
+      <p>Move the map with your finger — the pin stays fixed at center.</p>
+    </div>
+
+    <!-- Map fills rest of screen -->
+    <div class="pin-map-wrap">
+      <div id="pin-map"></div>
+      <!-- Centered crosshair pin (pointer-events:none so map still scrolls) -->
+      <div class="pin-crosshair" id="pin-crosshair">
+        <div class="crosshair-ring"><span class="material-symbols-outlined">location_on</span></div>
+        <div class="crosshair-stem"></div>
+        <div class="crosshair-shadow"></div>
+      </div>
+    </div>
+
+    <!-- Address preview -->
+    <div class="pin-addr-bar">
+      <span class="material-symbols-outlined">signpost</span>
+      <span id="pin-addr-text">Move map to see address…</span>
+    </div>
+
+    <div class="pin-modal-footer">
+      <button class="btn-cancel-pin" onclick="closePinModal()">Cancel</button>
+      <button class="btn-confirm-pin" onclick="confirmPin()">
+        <span class="material-symbols-outlined">check</span>
+        Confirm This Stop
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span class="material-symbols-outlined">check_circle</span>
+  <span id="toast-msg">Done</span>
+</div>
+
+<script>
+  const token = '<%= token %>';
+  const socket = io();
+  let mainMap, busMarker, stopMarker;
+  let pinMap, geoTimer;
+  let studentData;
+
+  /* ── init ── */
+  async function init() {
+    try {
+      const res = await fetch(`/api/parent/${token}`);
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      studentData = data.student;
+
+      document.getElementById('loading-state').remove();
+      document.getElementById('app').classList.add('ready');
+
+      updateUI(data);
+      initMainMap(data);
+      connectSocket();
+      loadNotices();
+
+      if (!studentData.pickup_lat) {
+        document.getElementById('pin-prompt').style.display = 'flex';
+      }
+    } catch {
+      document.getElementById('loading-state').remove();
+      document.getElementById('error-state').classList.add('show');
+    }
+  }
+
+  function updateUI(data) {
+    const s = data.student;
+    document.getElementById('hdr-school').textContent  = s.school_name || 'School Transport';
+    document.getElementById('student-name').textContent = s.name || '—';
+    document.getElementById('route-badge').textContent  = s.route_name || 'Assigned';
+    document.getElementById('pickup-txt').textContent   = s.pickup_location || 'Not pinpointed — tap to set';
+    if (data.trip) {
+      setLive(true);
+      document.getElementById('drv-name').textContent  = data.trip.driver_name || '—';
+      document.getElementById('veh-plate').textContent = data.trip.bus_name    || '—';
+      document.getElementById('veh-model').textContent = data.trip.model       || 'Standard';
+    }
+    if (data.attendance_status) setAttendance(data.attendance_status);
+    else if (data.trip) setAttendance('pending');
+  }
+
+  /* ── live badge ── */
+  function setLive(on) {
+    const pill = document.getElementById('live-pill');
+    document.getElementById('live-txt').textContent = on ? 'Live Now' : 'Offline';
+    if (on) pill.classList.add('live'); else pill.classList.remove('live');
+  }
+
+  /* ── attendance ── */
+  function setAttendance(status) {
+    const card = document.getElementById('att-card');
+    const emoji = document.getElementById('att-emoji');
+    const lbl   = document.getElementById('att-status');
+    card.style.display = 'flex';
+    const map = {
+      pending:     { e:'⏳', t:'Waiting for Bus',  bg:'var(--surface2)' },
+      picked_up:   { e:'🚌', t:'On the Bus!',       bg:'#dcfce7'         },
+      dropped_off: { e:'🏠', t:'Arrived Safely!',   bg:'var(--success-light)' },
+      absent:      { e:'❌', t:'Marked Absent',     bg:'#fef2f2'         }
+    };
+    const c = map[status] || map.pending;
+    emoji.textContent = c.e;
+    emoji.style.background = c.bg;
+    lbl.textContent = c.t;
+  }
+
+  /* ── main map ── */
+  function initMainMap(data) {
+    const s = data.student;
+    const lat = s.pickup_lat || 20.5937, lng = s.pickup_lng || 78.9629;
+    mainMap = L.map('map', { zoomControl: true }).setView([lat, lng], s.pickup_lat ? 15 : 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(mainMap);
+    if (s.pickup_lat) plotStop(s.pickup_lat, s.pickup_lng);
+  }
+
+  function plotStop(lat, lng) {
+    if (stopMarker) mainMap.removeLayer(stopMarker);
+    stopMarker = L.marker([lat, lng], {
+      icon: L.divIcon({ className:'', html:'<div class="stop-mk">🏠 My Stop</div>', iconAnchor:[45,14] })
+    }).addTo(mainMap);
+  }
+
+  function plotBus(lat, lng, name) {
+    if (busMarker) busMarker.setLatLng([lat, lng]);
+    else {
+      busMarker = L.marker([lat, lng], {
+        icon: L.divIcon({ className:'', html:`<div class="bus-mk">🚌 ${name||'Bus'}</div>`, iconAnchor:[36,14] })
+      }).addTo(mainMap);
+    }
+    mainMap.panTo([lat, lng], { animate: true });
+    if (studentData?.pickup_lat) {
+      const d = mainMap.distance([lat, lng], [studentData.pickup_lat, studentData.pickup_lng]);
+      document.getElementById('dist-val').textContent = (d/1000).toFixed(1);
+      document.getElementById('eta-val').textContent  = Math.ceil(d / 300);
+    }
+  }
+
+  /* ══════════════════════════════════════
+     PIN MODAL — dedicated Leaflet map
+  ══════════════════════════════════════ */
+  let pinMapInit = false;
+
+  function openPinModal() {
+    document.getElementById('pin-modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    setTimeout(() => {
+      if (!pinMapInit) {
+        // Center on student's existing pin OR main map center
+        const lat = studentData?.pickup_lat || (mainMap ? mainMap.getCenter().lat : 20.5937);
+        const lng = studentData?.pickup_lng || (mainMap ? mainMap.getCenter().lng : 78.9629);
+        pinMap = L.map('pin-map', { zoomControl: true }).setView([lat, lng], 16);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap'
+        }).addTo(pinMap);
+        pinMapInit = true;
+
+        // Reverse geocode when map stops moving
+        pinMap.on('moveend', reverseGeocode);
+        reverseGeocode();
+      } else {
+        // Re-center if already init
+        pinMap.invalidateSize();
+        const lat = studentData?.pickup_lat || 20.5937;
+        const lng = studentData?.pickup_lng || 78.9629;
+        pinMap.setView([lat, lng], 16);
+        reverseGeocode();
+      }
+    }, 80);
+  }
+
+  function closePinModal() {
+    document.getElementById('pin-modal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  let geocodeTimer = null;
+  async function reverseGeocode() {
+    if (!pinMap) return;
+    clearTimeout(geocodeTimer);
+    document.getElementById('pin-addr-text').textContent = 'Looking up address…';
+    geocodeTimer = setTimeout(async () => {
+      try {
+        const c = pinMap.getCenter();
+        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${c.lat}&lon=${c.lng}&format=json`);
+        const j = await r.json();
+        document.getElementById('pin-addr-text').textContent = j.display_name || `${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}`;
+      } catch {
+        const c = pinMap.getCenter();
+        document.getElementById('pin-addr-text').textContent = `${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}`;
+      }
+    }, 600);
+  }
+
+  async function confirmPin() {
+    if (!pinMap) return;
+    const center = pinMap.getCenter();
+    const addrEl = document.getElementById('pin-addr-text');
+    const addr   = addrEl.textContent;
+
+    const btn = document.querySelector('.btn-confirm-pin');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined" style="animation:spin 0.8s linear infinite">autorenew</span> Saving…';
+
+    try {
+      const res = await fetch(`/api/parent/${token}/pin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat: center.lat, lng: center.lng, address: addr })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        studentData = data.student;
+        // Update main map
+        plotStop(center.lat, center.lng);
+        mainMap.setView([center.lat, center.lng], 15);
+        // Update UI
+        document.getElementById('pickup-txt').textContent = addr || 'Location Pinned ✅';
+        document.getElementById('pin-prompt').style.display = 'none';
+        closePinModal();
+        showToast('📍 Stop location saved!', 'success');
+      } else {
+        showToast('Failed to save — try again', '');
+      }
+    } catch { showToast('Connection error', ''); }
+
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-symbols-outlined">check</span> Confirm This Stop';
+  }
+
+  /* ── socket ── */
+  function connectSocket() {
+    if (!studentData?.institution_id) return;
+    socket.emit('join-institution', studentData.institution_id);
+    socket.on('location:updated', d => { setLive(true); plotBus(d.lat, d.lng, d.busName); });
+    socket.on('trip:started', () => setLive(true));
+    socket.on('trip:ended', () => {
+      setLive(false);
+      if (busMarker) { mainMap.removeLayer(busMarker); busMarker = null; }
+      document.getElementById('eta-val').textContent  = '—';
+      document.getElementById('dist-val').textContent = '—';
+    });
+    socket.on('attendance:updated', d => {
+      if (d.studentId === studentData._id) setAttendance(d.status);
+    });
+  }
+
+  /* ── notices ── */
+  async function loadNotices() {
+    try {
+      const res = await fetch(`/api/parent/${token}/notices`);
+      const notices = await res.json();
+      const wrap = document.getElementById('notices-wrap');
+      if (!notices?.length) return;
+      wrap.innerHTML = notices.map(n => `
+        <div class="notice-card" style="margin-bottom:10px">
+          <div>
+            <div class="notice-lbl">📣 Notice</div>
+            <div class="notice-title">${n.title}</div>
+            <div class="notice-msg">${n.message}</div>
+          </div>
+          <button class="notice-x" onclick="this.closest('.notice-card').remove()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>`).join('');
+    } catch {}
+  }
+
+  /* ── toast ── */
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    document.getElementById('toast-msg').textContent = msg;
+    t.className = 'toast' + (type === 'success' ? ' success' : '');
+    requestAnimationFrame(() => { t.offsetHeight; t.classList.add('show'); });
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+
+  init();
+</script>
+</body>
+</html>

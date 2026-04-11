@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <meta name="description" content="Manage Routify school transport - Students.">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚌</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .sidebar-item { transition: all 0.15s ease; color: #64748b; }
+        .sidebar-item:hover { background: rgba(37,99,235,0.08); color: #2563eb; }
+        .sidebar-item.active { background: rgba(37,99,235,0.1); color: #2563eb; border-right: 3px solid #2563eb; font-weight: 600; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.5); backdrop-filter: blur(4px); z-index: 50; align-items: center; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .input-field { border: 1.5px solid #e2e8f0; transition: all 0.2s; }
+        .input-field:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .toast { position: fixed; bottom: 24px; right: 24px; z-index: 100; transform: translateY(80px); opacity:0; transition: all 0.3s; }
+        .toast.show { transform: translateY(0); opacity:1; }
+        #sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.5); backdrop-filter: blur(4px); z-index: 40; }
+        #sidebar-overlay.show { display: block; }
+        #sidebar { transition: transform 0.3s ease; }
+        @media (max-width: 768px) {
+            #sidebar { position: fixed; top: 0; left: 0; bottom: 0; z-index: 50; transform: translateX(-100%); width: 280px !important; box-shadow: 0 0 40px rgba(0,0,0,0.2); }
+            #sidebar.open { transform: translateX(0); }
+        }
+        tr:hover td { background: #f8fafc; }
+    </style>
+</head>
+<body class="bg-slate-50 flex h-screen overflow-hidden">
+
+    <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-64 bg-white border-r border-slate-200 flex flex-col flex-shrink-0">
+        <div class="p-5 flex items-center justify-between border-b border-slate-100">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
+                    <i data-lucide="bus" class="w-4 h-4 text-white"></i>
+                </div>
+                <span class="text-lg font-bold tracking-tight text-slate-900">Routify</span>
+            </div>
+            <button onclick="closeSidebar()" class="md:hidden text-slate-400 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div class="px-4 py-3 bg-blue-50 border-b border-blue-100">
+            <p class="text-xs text-blue-600 font-semibold uppercase tracking-wide">Institution</p>
+            <p class="text-sm font-bold text-slate-800 mt-0.5 truncate" id="inst-name">Loading...</p>
+        </div>
+        <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+            <a href="/admin/dashboard" onclick="closeSidebar()" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-xl"><i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm">Dashboard</span></a>
+            <a href="/admin/routes" onclick="closeSidebar()" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-xl"><i data-lucide="map" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm">Routes</span></a>
+            <a href="/admin/drivers" onclick="closeSidebar()" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-xl"><i data-lucide="users" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm">Drivers</span></a>
+            <a href="/admin/students" onclick="closeSidebar()" class="sidebar-item active flex items-center gap-3 px-3 py-2.5 rounded-xl"><i data-lucide="graduation-cap" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm">Students</span></a>
+            <a href="/admin/vehicles" onclick="closeSidebar()" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-xl"><i data-lucide="truck" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm">Vehicles</span></a>
+        </nav>
+        <div class="p-3 border-t border-slate-100">
+            <button onclick="logout()" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-left hover:text-red-600 hover:bg-red-50">
+                <i data-lucide="log-out" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm">Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden min-w-0">
+        <header class="h-14 md:h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 flex-shrink-0">
+            <div class="flex items-center gap-3">
+                <button onclick="openSidebar()" class="md:hidden p-2 rounded-xl hover:bg-slate-100 transition text-slate-600">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+                <div>
+                    <h1 class="text-base md:text-lg font-bold text-slate-900">Students</h1>
+                    <p class="text-xs text-slate-500" id="student-count-header">Loading...</p>
+                </div>
+            </div>
+            <button onclick="openAddModal()" class="bg-blue-600 text-white px-3 md:px-4 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold flex items-center gap-1.5 hover:bg-blue-700 transition shadow-sm shadow-blue-200">
+                <i data-lucide="plus" class="w-4 h-4"></i> <span class="hidden sm:inline">Add</span> Student
+            </button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6">
+            <div class="mb-4 flex gap-3">
+                <div class="relative flex-1 max-w-xs">
+                    <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                    <input type="text" id="search-input" oninput="filterStudents()" placeholder="Search students..." class="input-field w-full pl-10 pr-4 py-2.5 rounded-xl bg-white text-sm">
+                </div>
+                <select id="route-filter" onchange="filterStudents()" class="input-field px-4 py-2.5 rounded-xl bg-white text-sm">
+                    <option value="">All Routes</option>
+                </select>
+            </div>
+
+            <div id="loading-state" class="bg-white rounded-2xl p-12 text-center shadow-sm border border-slate-100">
+                <div class="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                <p class="text-slate-500 text-sm">Loading students...</p>
+            </div>
+
+            <div id="table-container" class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hidden">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wide border-b border-slate-100">
+                        <tr>
+                            <th class="px-6 py-3.5 font-semibold">Student</th>
+                            <th class="px-6 py-3.5 font-semibold">Parent Email</th>
+                            <th class="px-6 py-3.5 font-semibold">Route</th>
+                            <th class="px-6 py-3.5 font-semibold">Pickup Stop</th>
+                            <th class="px-6 py-3.5 font-semibold">Portal Link</th>
+                            <th class="px-6 py-3.5 font-semibold">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="students-table" class="divide-y divide-slate-100 text-sm"></tbody>
+                </table>
+                <div id="empty-state" class="hidden p-12 text-center">
+                    <div class="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="graduation-cap" class="w-8 h-8 text-slate-400"></i>
+                    </div>
+                    <h3 class="text-slate-800 font-bold mb-1">No students yet</h3>
+                    <p class="text-slate-500 text-sm mb-4">Add students to enable parent portal tracking and notifications.</p>
+                    <button onclick="openAddModal()" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition inline-flex items-center gap-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Add First Student
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Student Modal -->
+    <div id="add-modal" class="modal-overlay" onclick="closeOnOverlay(event,'add-modal')">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-8 mx-4">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900">Add New Student</h2>
+                    <p class="text-sm text-slate-500 mt-0.5">Parent will receive a portal link via email</p>
+                </div>
+                <button onclick="closeModal('add-modal')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition">
+                    <i data-lucide="x" class="w-4 h-4 text-slate-500"></i>
+                </button>
+            </div>
+            <div id="modal-error" class="hidden mb-4 p-3.5 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700"></div>
+            <form id="add-student-form" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Student Full Name *</label>
+                        <input id="s-name" type="text" required class="input-field w-full px-4 py-3 rounded-xl text-sm" placeholder="Alice Johnson">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Parent Email *</label>
+                        <input id="s-parent-email" type="email" required class="input-field w-full px-4 py-3 rounded-xl text-sm" placeholder="parent@email.com">
+                        <p class="text-xs text-slate-400 mt-1">A tracking portal link will be sent to this email</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Parent Phone</label>
+                        <input id="s-parent-phone" type="tel" class="input-field w-full px-4 py-3 rounded-xl text-sm" placeholder="+1 555-0000">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Assign Route</label>
+                        <select id="s-route" class="input-field w-full px-4 py-3 rounded-xl text-sm bg-white"></select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Pickup Stop / Location</label>
+                        <input id="s-pickup" type="text" class="input-field w-full px-4 py-3 rounded-xl text-sm" placeholder="e.g. 123 Maple Street">
+                    </div>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="closeModal('add-modal')" class="flex-1 py-3 border-2 border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">Cancel</button>
+                    <button type="submit" id="add-btn" class="flex-1 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Add & Send Portal Link
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirm Modal -->
+    <div id="delete-modal" class="modal-overlay" onclick="closeOnOverlay(event,'delete-modal')">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 mx-4 text-center">
+            <div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="trash-2" class="w-7 h-7 text-red-500"></i>
+            </div>
+            <h2 class="text-lg font-bold text-slate-900 mb-2">Remove Student?</h2>
+            <p class="text-slate-500 text-sm mb-6">This will permanently remove <strong id="delete-name"></strong> and invalidate their parent portal link.</p>
+            <div class="flex gap-3">
+                <button onclick="closeModal('delete-modal')" class="flex-1 py-3 border-2 border-slate-200 rounded-xl text-sm font-semibold hover:bg-slate-50 transition">Cancel</button>
+                <button onclick="confirmDelete()" class="flex-1 py-3 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 transition">Remove</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Portal Link Modal -->
+    <div id="portal-modal" class="modal-overlay" onclick="closeOnOverlay(event,'portal-modal')">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 mx-4">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-slate-900">Parent Portal Link</h2>
+                <button onclick="closeModal('portal-modal')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition">
+                    <i data-lucide="x" class="w-4 h-4 text-slate-500"></i>
+                </button>
+            </div>
+            <p class="text-sm text-slate-500 mb-4">Share this link with the parent. They can track the bus without logging in.</p>
+            <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 flex items-center gap-3 mb-4">
+                <code class="text-xs text-slate-700 flex-1 break-all" id="portal-link-text"></code>
+                <button onclick="copyPortalLink()" class="flex-shrink-0 p-2 bg-blue-50 rounded-lg hover:bg-blue-100 transition">
+                    <i data-lucide="copy" class="w-4 h-4 text-blue-600"></i>
+                </button>
+            </div>
+            <a id="portal-link-btn" href="#" target="_blank" class="block w-full py-3 bg-blue-600 text-white rounded-xl text-sm font-bold text-center hover:bg-blue-700 transition">
+                Open Portal →
+            </a>
+            <button onclick="resendPortalEmail()" id="resend-btn" class="mt-3 w-full py-2.5 bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-100 transition flex items-center justify-center gap-2">
+                <i data-lucide="mail" class="w-3.5 h-3.5"></i> Resend Email Reminder
+            </button>
+        </div>
+    </div>
+
+    <div id="toast" class="toast bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3">
+        <i data-lucide="check-circle" class="w-5 h-5 text-green-400"></i>
+        <span class="text-sm font-medium" id="toast-text"></span>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const token = localStorage.getItem('routify_token');
+        const user = JSON.parse(localStorage.getItem('routify_user') || '{}');
+        if (!token) window.location.href = '/login';
+        if (user.name) document.getElementById('inst-name').textContent = user.name;
+        function logout() { localStorage.removeItem('routify_token'); localStorage.removeItem('routify_user'); window.location.href = '/login'; }
+        function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('show'); }
+        function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('show'); }
+
+        let allStudents = [];
+        let allRoutes = [];
+        let deleteId = null;
+        let currentPortalLink = '';
+        let currentStudentId = null;
+
+        async function loadData() {
+            try {
+                const [studRes, routeRes] = await Promise.all([
+                    fetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('/api/routes', { headers: { 'Authorization': `Bearer ${token}` } })
+                ]);
+                allStudents = await studRes.json();
+                allRoutes = await routeRes.json();
+
+                // Populate route filter
+                const routeFilter = document.getElementById('route-filter');
+                routeFilter.innerHTML = '<option value="">All Routes</option>' +
+                    allRoutes.map(r => `<option value="${r._id || r.id}">${r.name}</option>`).join('');
+
+                // Populate route select in modal
+                const routeSelect = document.getElementById('s-route');
+                routeSelect.innerHTML = '<option value="">No route assigned</option>' +
+                    allRoutes.map(r => `<option value="${r._id || r.id}">${r.name}</option>`).join('');
+
+                renderStudents(allStudents);
+            } catch { showToast('Failed to load data', 'error'); }
+        }
+
+        function renderStudents(students) {
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('table-container').classList.remove('hidden');
+            const tbody = document.getElementById('students-table');
+            const empty = document.getElementById('empty-state');
+            document.getElementById('student-count-header').textContent = `${students.length} student${students.length !== 1 ? 's' : ''} registered`;
+
+            if (students.length === 0) { tbody.innerHTML = ''; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+            tbody.innerHTML = students.map(s => `
+                <tr>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 bg-green-100 rounded-xl flex items-center justify-center text-green-700 font-bold text-sm flex-shrink-0">
+                                ${s.name.charAt(0).toUpperCase()}
+                            </div>
+                            <span class="font-semibold text-slate-800">${s.name}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-slate-600 text-sm">${s.parent_email}</td>
+                    <td class="px-6 py-4">
+                        ${s.route_name ? `<span class="px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">${s.route_name}</span>` : '<span class="text-slate-400 text-xs">—</span>'}
+                    </td>
+                    <td class="px-6 py-4 text-slate-600 text-sm truncate max-w-[150px]">${s.pickup_location || '—'}</td>
+                    <td class="px-6 py-4">
+                        <button onclick="showPortalLink('${s._id || s.id}', '${s.access_token}')" class="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 text-xs font-semibold transition p-1.5 rounded-lg hover:bg-blue-50">
+                            <i data-lucide="external-link" class="w-3.5 h-3.5"></i> View Link
+                        </button>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="openDeleteModal('${s._id || s.id}','${s.name}')" class="text-red-500 hover:text-red-700 transition p-1.5 rounded-lg hover:bg-red-50">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function filterStudents() {
+            const q = document.getElementById('search-input').value.toLowerCase();
+            const r = document.getElementById('route-filter').value;
+            renderStudents(allStudents.filter(s =>
+                (s.name.toLowerCase().includes(q) || s.parent_email.toLowerCase().includes(q)) &&
+                (!r || s.route_id === r)
+            ));
+        }
+
+        function showPortalLink(id, token) {
+            currentStudentId = id;
+            const url = `${window.location.origin}/parent/portal/${token}`;
+            currentPortalLink = url;
+            document.getElementById('portal-link-text').textContent = url;
+            document.getElementById('portal-link-btn').href = url;
+            document.getElementById('portal-modal').classList.add('open');
+        }
+
+        async function resendPortalEmail() {
+            const btn = document.getElementById('resend-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div> Sending...';
+            try {
+                const res = await fetch(`/api/students/${currentStudentId}/resend-portal`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) showToast('Invitation resent successfully!');
+                else showToast('Failed to resend', 'error');
+            } catch { showToast('Connection error', 'error'); }
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="mail" class="w-3.5 h-3.5"></i> Resend Email Reminder';
+            lucide.createIcons();
+        }
+
+        function copyPortalLink() {
+            navigator.clipboard.writeText(currentPortalLink);
+            showToast('Link copied to clipboard!');
+        }
+
+        function openAddModal() { document.getElementById('add-student-form').reset(); document.getElementById('modal-error').classList.add('hidden'); document.getElementById('add-modal').classList.add('open'); }
+        function openDeleteModal(id, name) { deleteId = id; document.getElementById('delete-name').textContent = name; document.getElementById('delete-modal').classList.add('open'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+        function closeOnOverlay(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
+
+        document.getElementById('add-student-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('add-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Adding...';
+
+            try {
+                const res = await fetch('/api/students', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({
+                        name: document.getElementById('s-name').value,
+                        parent_email: document.getElementById('s-parent-email').value,
+                        parent_phone: document.getElementById('s-parent-phone').value,
+                        route_id: document.getElementById('s-route').value || null,
+                        pickup_location: document.getElementById('s-pickup').value
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) { document.getElementById('modal-error').textContent = data.error; document.getElementById('modal-error').classList.remove('hidden'); }
+                else { closeModal('add-modal'); showToast('Student added! Portal email sent to parent.'); loadData(); }
+            } catch { document.getElementById('modal-error').textContent = 'Connection error.'; document.getElementById('modal-error').classList.remove('hidden'); }
+
+            btn.disabled = false; btn.innerHTML = '<i data-lucide="plus" class="w-4 h-4"></i> Add & Send Portal Link'; lucide.createIcons();
+        });
+
+        async function confirmDelete() {
+            try {
+                await fetch(`/api/students/${deleteId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+                closeModal('delete-modal'); showToast('Student removed'); loadData();
+            } catch { showToast('Failed to delete', 'error'); }
+        }
+
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-text').textContent = msg;
+            toast.className = `toast ${type === 'error' ? 'bg-red-600' : 'bg-slate-900'} text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 show`;
+            setTimeout(() => { toast.classList.remove('show'); }, 3500);
+        }
+
+        loadData();
+    </script>
+</body>
+</html>

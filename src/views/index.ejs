@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <meta name="description" content="Routify - Smart school transport management. Real-time GPS tracking, zero hardware needed. Deploy in minutes using only smartphones.">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚌</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .gradient-text {
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero-gradient {
+            background: radial-gradient(ellipse 80% 80% at 50% -20%, rgba(120, 119, 198, 0.15), transparent),
+                        radial-gradient(ellipse 60% 50% at 80% 50%, rgba(37, 99, 235, 0.08), transparent);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+        .floating-delay {
+            animation: float 6s ease-in-out infinite 2s;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-12px); }
+        }
+        .fade-in-up {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        .fade-in-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.4;
+            pointer-events: none;
+        }
+        .orb-1 { width: 500px; height: 500px; background: #3b82f6; top: -150px; right: -150px; }
+        .orb-2 { width: 350px; height: 350px; background: #8b5cf6; bottom: 50px; left: -80px; }
+        .orb-3 { width: 280px; height: 280px; background: #06b6d4; top: 40%; right: 5%; }
+
+        .stat-counter { display: inline-block; }
+        .feature-card {
+            transition: all 0.3s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 60px rgba(37, 99, 235, 0.12);
+        }
+        .pricing-card {
+            transition: all 0.3s ease;
+        }
+        .pricing-card:hover {
+            transform: translateY(-4px);
+        }
+        .pricing-card.popular {
+            background: linear-gradient(135deg, #1d4ed8, #2563eb);
+            color: white;
+        }
+        .nav-blur {
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(226,232,240,0.8);
+        }
+        .role-tab.active { background: #2563eb; color: white; }
+        .role-tab { transition: all 0.2s; }
+        .dashboard-preview {
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border: 1px solid #e2e8f0;
+        }
+        .badge-glow {
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-16px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .slide-in { animation: slideIn 0.5s ease forwards; }
+        .testimonial-card {
+            transition: all 0.3s ease;
+        }
+        .testimonial-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+        }
+        .hamburger-line {
+            transition: all 0.3s ease;
+        }
+        #mobile-menu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        #mobile-menu.open {
+            max-height: 400px;
+        }
+    </style>
+</head>
+<body class="bg-white text-slate-900 overflow-x-hidden">
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 nav-blur">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <!-- Logo -->
+                <a href="/" class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-200">
+                        <i data-lucide="bus" class="w-4 h-4 text-white"></i>
+                    </div>
+                    <span class="text-xl font-bold tracking-tight text-slate-900">Routify</span>
+                </a>
+                <!-- Desktop Nav -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#features" class="text-slate-600 hover:text-blue-600 transition text-sm font-medium">Features</a>
+                    <a href="#how-it-works" class="text-slate-600 hover:text-blue-600 transition text-sm font-medium">How it works</a>
+                    <a href="#pricing" class="text-slate-600 hover:text-blue-600 transition text-sm font-medium">Pricing</a>
+                    <a href="/login" class="text-slate-600 hover:text-blue-600 transition text-sm font-medium">Login</a>
+                    <a href="/register" class="bg-blue-600 text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-blue-700 transition shadow-lg shadow-blue-200 hover:shadow-blue-300">Get Started Free</a>
+                </div>
+                <!-- Mobile Menu Button -->
+                <button id="menu-toggle" class="md:hidden flex flex-col gap-1.5 p-2" onclick="toggleMenu()">
+                    <span class="hamburger-line w-6 h-0.5 bg-slate-800" id="line1"></span>
+                    <span class="hamburger-line w-6 h-0.5 bg-slate-800" id="line2"></span>
+                    <span class="hamburger-line w-4 h-0.5 bg-slate-800" id="line3"></span>
+                </button>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="md:hidden bg-white border-t border-slate-100">
+            <div class="px-6 py-4 space-y-4">
+                <a href="#features" class="block text-slate-700 font-medium hover:text-blue-600 transition">Features</a>
+                <a href="#how-it-works" class="block text-slate-700 font-medium hover:text-blue-600 transition">How it works</a>
+                <a href="#pricing" class="block text-slate-700 font-medium hover:text-blue-600 transition">Pricing</a>
+                <a href="/login" class="block text-slate-700 font-medium hover:text-blue-600 transition">Login</a>
+                <a href="/register" class="block bg-blue-600 text-white px-5 py-3 rounded-xl text-center font-semibold">Get Started Free</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative pt-28 pb-24 overflow-hidden hero-gradient">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-5xl mx-auto">
+                <div class="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-sm font-medium mb-8 badge-glow fade-in-up">
+                    <span class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                    Trusted by 500+ schools worldwide
+                </div>
+                <h1 class="text-5xl sm:text-6xl md:text-7xl font-black text-slate-900 mb-6 leading-tight tracking-tight fade-in-up">
+                    Smart School Transport.<br>
+                    <span class="gradient-text">Zero Hardware.</span>
+                </h1>
+                <p class="text-xl text-slate-600 mb-10 max-w-2xl mx-auto leading-relaxed fade-in-up">
+                    Real-time fleet tracking for schools that actually works. Deploy GPS monitoring across your entire fleet in <strong>under 5 minutes</strong> using only smartphones.
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center gap-4 mb-16 fade-in-up">
+                    <a href="/register" id="hero-cta" class="bg-blue-600 text-white px-8 py-4 rounded-full text-lg font-bold hover:bg-blue-700 transition-all shadow-2xl shadow-blue-300 hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                        Start Free Trial <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                    </a>
+                    <a href="#how-it-works" class="bg-white text-slate-800 px-8 py-4 rounded-full text-lg font-semibold border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2 shadow-sm">
+                        <i data-lucide="play-circle" class="w-5 h-5 text-blue-600"></i> See How It Works
+                    </a>
+                </div>
+
+                <!-- Stats Row -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto fade-in-up">
+                    <div class="text-center">
+                        <div class="text-3xl font-black text-slate-900" data-target="500">0+</div>
+                        <div class="text-sm text-slate-500 mt-1">Schools Active</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-black text-slate-900" data-target="50000">0+</div>
+                        <div class="text-sm text-slate-500 mt-1">Students Tracked</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-black text-slate-900">99.9%</div>
+                        <div class="text-sm text-slate-500 mt-1">Uptime SLA</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-black text-slate-900">5 min</div>
+                        <div class="text-sm text-slate-500 mt-1">Deploy Time</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Preview -->
+            <div class="mt-20 relative max-w-5xl mx-auto fade-in-up">
+                <div class="dashboard-preview rounded-3xl p-4 shadow-2xl">
+                    <div class="bg-white rounded-2xl overflow-hidden shadow-sm">
+                        <!-- Mock Dashboard Header -->
+                        <div class="bg-slate-900 px-6 py-4 flex items-center gap-2">
+                            <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                            <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                            <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                            <div class="flex-1 bg-slate-700 rounded-full h-6 mx-4 flex items-center px-3">
+                                <span class="text-slate-400 text-xs">localhost:3000/admin/dashboard</span>
+                            </div>
+                        </div>
+                        <!-- Mock Dashboard Content -->
+                        <div class="p-6 bg-slate-50">
+                            <div class="grid grid-cols-4 gap-4 mb-6">
+                                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                                    <div class="text-xs text-slate-500 mb-1">Active Trips</div>
+                                    <div class="text-2xl font-bold text-blue-600">7</div>
+                                    <div class="text-xs text-green-500 font-medium mt-1">↑ 2 from yesterday</div>
+                                </div>
+                                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                                    <div class="text-xs text-slate-500 mb-1">Total Routes</div>
+                                    <div class="text-2xl font-bold text-slate-900">12</div>
+                                    <div class="text-xs text-slate-400 font-medium mt-1">All running</div>
+                                </div>
+                                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                                    <div class="text-xs text-slate-500 mb-1">Drivers Online</div>
+                                    <div class="text-2xl font-bold text-green-600">7</div>
+                                    <div class="text-xs text-green-500 font-medium mt-1">● Live</div>
+                                </div>
+                                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                                    <div class="text-xs text-slate-500 mb-1">Students Picked Up</div>
+                                    <div class="text-2xl font-bold text-purple-600">148</div>
+                                    <div class="text-xs text-slate-400 font-medium mt-1">of 203 total</div>
+                                </div>
+                            </div>
+                            <!-- Mini Map Placeholder -->
+                            <div class="relative bg-gradient-to-br from-blue-50 to-slate-100 rounded-2xl h-40 overflow-hidden">
+                                <!-- Grid overlay -->
+                                <svg class="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                                    <defs><pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M 24 0 L 0 0 0 24" fill="none" stroke="#cbd5e1" stroke-width="0.5"/></pattern></defs>
+                                    <rect width="100%" height="100%" fill="url(#grid)"/>
+                                    <!-- Fake road lines -->
+                                    <line x1="0" y1="80" x2="100%" y2="80" stroke="#94a3b8" stroke-width="2" stroke-dasharray="12,6"/>
+                                    <line x1="200" y1="0" x2="200" y2="100%" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="8,4"/>
+                                    <line x1="450" y1="0" x2="450" y2="100%" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="8,4"/>
+                                </svg>
+                                <!-- Bus marker -->
+                                <div class="absolute" style="left:38%;top:48%">
+                                    <div class="bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-blue-300 whitespace-nowrap border-2 border-white">🚌 Bus A</div>
+                                </div>
+                                <!-- Stop markers -->
+                                <div class="absolute w-3 h-3 bg-purple-500 rounded-full border-2 border-white shadow" style="left:22%;top:55%" title="Stop 1"></div>
+                                <div class="absolute w-3 h-3 bg-purple-500 rounded-full border-2 border-white shadow" style="left:55%;top:35%"></div>
+                                <div class="absolute w-3 h-3 bg-purple-500 rounded-full border-2 border-white shadow" style="left:72%;top:62%"></div>
+                                <!-- Label -->
+                                <div class="absolute bottom-2 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur text-slate-600 text-[10px] font-semibold px-3 py-1 rounded-full shadow-sm">
+                                    🟦 Active Bus &nbsp;&nbsp; 🟣 Student Stop
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Floating badges -->
+                <div class="absolute -left-4 top-16 glass-card rounded-2xl px-4 py-3 shadow-xl floating hidden md:block">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                            <i data-lucide="check" class="w-4 h-4 text-green-600"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-slate-800">Bus #101 Arrived</div>
+                            <div class="text-xs text-slate-500">2 min ago · Route A</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="absolute -right-4 bottom-20 glass-card rounded-2xl px-4 py-3 shadow-xl floating-delay hidden md:block">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <i data-lucide="navigation" class="w-4 h-4 text-blue-600"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-slate-800">3 buses en route</div>
+                            <div class="text-xs text-slate-500">ETA: 5-12 mins</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Logos -->
+    <section class="py-12 border-y border-slate-100 bg-slate-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-sm text-slate-500 mb-8 uppercase tracking-widest font-medium">Trusted by leading institutions</p>
+            <div class="flex flex-wrap items-center justify-center gap-8 md:gap-16 opacity-60">
+                <span class="text-xl font-black text-slate-400">Greenfield Academy</span>
+                <span class="text-xl font-black text-slate-400">Sunrise School</span>
+                <span class="text-xl font-black text-slate-400">Metro Education</span>
+                <span class="text-xl font-black text-slate-400">Pinnacle Institute</span>
+                <span class="text-xl font-black text-slate-400">St. Mary's School</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="py-24 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16 fade-in-up">
+                <span class="text-blue-600 text-sm font-bold uppercase tracking-widest">Features</span>
+                <h2 class="text-4xl md:text-5xl font-black text-slate-900 mt-3 mb-4">Everything you need to manage your fleet</h2>
+                <p class="text-xl text-slate-600 max-w-2xl mx-auto">Powerful tools designed for school administrators, drivers, and parents — all in one platform.</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="feature-card p-8 rounded-3xl bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-100 fade-in-up">
+                    <div class="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-blue-200">
+                        <i data-lucide="map-pin" class="w-7 h-7 text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-slate-900">Real-time GPS Tracking</h3>
+                    <p class="text-slate-600 leading-relaxed">Live location updates every 3 seconds. See exactly where every bus is on a high-precision map with zero hardware.</p>
+                    <ul class="mt-4 space-y-2">
+                        <li class="flex items-center gap-2 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-blue-500"></i> 3-second location refresh</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-blue-500"></i> Works on any smartphone</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-blue-500"></i> No special hardware needed</li>
+                    </ul>
+                </div>
+                <div class="feature-card p-8 rounded-3xl bg-gradient-to-br from-green-50 to-green-100/50 border border-green-100 fade-in-up">
+                    <div class="w-14 h-14 bg-green-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-green-200">
+                        <i data-lucide="bell" class="w-7 h-7 text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-slate-900">Smart Parent Alerts</h3>
+                    <p class="text-slate-600 leading-relaxed">Automated alerts when the bus is approaching. Parents get a live ETA — no more waiting in the rain or heat.</p>
+                    <ul class="mt-4 space-y-2">
+                        <li class="flex items-center gap-2 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-green-500"></i> Instant arrival notifications</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-green-500"></i> Private token-based portal</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-green-500"></i> Live ETA calculation</li>
+                    </ul>
+                </div>
+                <div class="feature-card p-8 rounded-3xl bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-100 fade-in-up">
+                    <div class="w-14 h-14 bg-purple-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-purple-200">
+                        <i data-lucide="shield-check" class="w-7 h-7 text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-slate-900">Student Safety Tracking</h3>
+                    <p class="text-slate-600 leading-relaxed">Digital attendance and pickup checklists for drivers. Ensure every student is accounted for on every single trip.</p>
+                    <ul class="mt-4 space-y-2">
+                        <li class="flex items-center gap-2 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-purple-500"></i> Per-stop attendance log</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-purple-500"></i> Driver checklist app</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-purple-500"></i> Trip history & audit trail</li>
+                    </ul>
+                </div>
+                <div class="feature-card p-8 rounded-3xl bg-gradient-to-br from-orange-50 to-orange-100/50 border border-orange-100 fade-in-up">
+                    <div class="w-14 h-14 bg-orange-500 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-orange-200">
+                        <i data-lucide="bar-chart-3" class="w-7 h-7 text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-slate-900">Analytics & Reporting</h3>
+                    <p class="text-slate-600 leading-relaxed">Track trip history, on-time rates, and driver performance. Get actionable insights to optimize your fleet.</p>
+                    <ul class="mt-4 space-y-2">
+                        <li class="flex items-center gap-2 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-orange-500"></i> On-time performance metrics</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-orange-500"></i> Trip history export</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-orange-500"></i> Route optimization hints</li>
+                    </ul>
+                </div>
+                <div class="feature-card p-8 rounded-3xl bg-gradient-to-br from-rose-50 to-rose-100/50 border border-rose-100 fade-in-up">
+                    <div class="w-14 h-14 bg-rose-500 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-rose-200">
+                        <i data-lucide="users" class="w-7 h-7 text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-slate-900">Multi-role Access</h3>
+                    <p class="text-slate-600 leading-relaxed">Separate dashboards for admins, drivers, and parents. Each role sees exactly what they need — nothing more.</p>
+                    <ul class="mt-4 space-y-2">
+                        <li class="flex items-center gap-2 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-rose-500"></i> Admin control panel</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-rose-500"></i> Mobile driver app</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-rose-500"></i> Parent view portal</li>
+                    </ul>
+                </div>
+                <div class="feature-card p-8 rounded-3xl bg-gradient-to-br from-cyan-50 to-cyan-100/50 border border-cyan-100 fade-in-up">
+                    <div class="w-14 h-14 bg-cyan-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-cyan-200">
+                        <i data-lucide="zap" class="w-7 h-7 text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-slate-900">Instant Setup</h3>
+                    <p class="text-slate-600 leading-relaxed">No IT team required. Register your school, add your drivers, share links with parents — and you're live in minutes.</p>
+                    <ul class="mt-4 space-y-2">
+                        <li class="flex items-center gap-2 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-cyan-500"></i> 5-minute onboarding</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-cyan-500"></i> No app installation for parents</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-cyan-500"></i> Works on all devices</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section id="how-it-works" class="py-24 bg-slate-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16 fade-in-up">
+                <span class="text-blue-600 text-sm font-bold uppercase tracking-widest">How It Works</span>
+                <h2 class="text-4xl md:text-5xl font-black text-slate-900 mt-3 mb-4">Three perspectives. One platform.</h2>
+            </div>
+
+            <!-- Role Tabs -->
+            <div class="flex justify-center gap-2 mb-12 fade-in-up">
+                <button onclick="showRole('admin')" id="tab-admin" class="role-tab active px-6 py-3 rounded-full font-semibold text-sm transition">School Admin</button>
+                <button onclick="showRole('driver')" id="tab-driver" class="role-tab px-6 py-3 rounded-full bg-white border border-slate-200 font-semibold text-sm transition text-slate-600">Driver</button>
+                <button onclick="showRole('parent')" id="tab-parent" class="role-tab px-6 py-3 rounded-full bg-white border border-slate-200 font-semibold text-sm transition text-slate-600">Parent</button>
+            </div>
+
+            <!-- Role Content -->
+            <div id="role-admin" class="fade-in-up">
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-blue-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-black shadow-lg shadow-blue-200">1</div>
+                        <h3 class="text-lg font-bold mb-2">Register Your School</h3>
+                        <p class="text-slate-600">Create an account with your school name and email. Set up your institution in 60 seconds.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-blue-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-black shadow-lg shadow-blue-200">2</div>
+                        <h3 class="text-lg font-bold mb-2">Add Routes, Drivers & Students</h3>
+                        <p class="text-slate-600">Build your routes, onboard drivers, and register students with their pickup locations.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-blue-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-black shadow-lg shadow-blue-200">3</div>
+                        <h3 class="text-lg font-bold mb-2">Go Live. Monitor in Real-Time</h3>
+                        <p class="text-slate-600">Watch your entire fleet on a live map. Get instant alerts and full trip history at your fingertips.</p>
+                    </div>
+                </div>
+            </div>
+            <div id="role-driver" class="hidden fade-in-up">
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-green-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-black shadow-lg shadow-green-200">1</div>
+                        <h3 class="text-lg font-bold mb-2">Get Your Driver Link</h3>
+                        <p class="text-slate-600">Admin shares a simple URL. Open it on your phone — no app download required.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-green-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-black shadow-lg shadow-green-200">2</div>
+                        <h3 class="text-lg font-bold mb-2">Tap "Start Trip"</h3>
+                        <p class="text-slate-600">Your phone starts broadcasting GPS to the school dashboard automatically. Mark students as picked up as you go.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-green-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-black shadow-lg shadow-green-200">3</div>
+                        <h3 class="text-lg font-bold mb-2">End Trip & Go</h3>
+                        <p class="text-slate-600">Tap "End Trip" when you arrive. Done. Everything is logged automatically.</p>
+                    </div>
+                </div>
+            </div>
+            <div id="role-parent" class="hidden fade-in-up">
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-purple-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-black shadow-lg shadow-purple-200">1</div>
+                        <h3 class="text-lg font-bold mb-2">Receive Your Portal Link</h3>
+                        <p class="text-slate-600">School emails you a private, secure link tied to your child's profile. No account needed.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-purple-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-black shadow-lg shadow-purple-200">2</div>
+                        <h3 class="text-lg font-bold mb-2">Track the Bus Live</h3>
+                        <p class="text-slate-600">Open the link when the bus is en route. See it on the map with a live ETA to your stop.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-purple-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-black shadow-lg shadow-purple-200">3</div>
+                        <h3 class="text-lg font-bold mb-2">Get Notified on Arrival</h3>
+                        <p class="text-slate-600">Know exactly when to step outside. No more waiting, no more uncertainty about your child's safety.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="py-24 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16 fade-in-up">
+                <span class="text-blue-600 text-sm font-bold uppercase tracking-widest">Reviews</span>
+                <h2 class="text-4xl md:text-5xl font-black text-slate-900 mt-3 mb-4">Loved by schools everywhere</h2>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="testimonial-card bg-slate-50 p-8 rounded-3xl border border-slate-100 fade-in-up">
+                    <div class="flex mb-4">
+                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-yellow-400"></i>
+                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-yellow-400"></i>
+                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-yellow-400"></i>
+                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-yellow-400"></i>
+                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-yellow-400"></i>
+                    </div>
+                    <p class="text-slate-700 leading-relaxed mb-6">"We had 20 buses and zero visibility. Routify changed everything. Parents stopped calling us every morning — because they could see the bus themselves."</p>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">SK</div>
+                        <div>
+                            <div class="font-bold text-slate-900 text-sm">Sarah K.</div>
+                            <div class="text-slate-500 text-xs">Principal, Greenfield Academy</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card bg-slate-50 p-8 rounded-3xl border border-slate-100 fade-in-up">
+                    <div class="flex mb-4">
+                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-yellow-400"></i>
+                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-yellow-400"></i>
+                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-yellow-400"></i>
+                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-yellow-400"></i>
+                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-yellow-400"></i>
+                    </div>
+                    <p class="text-slate-700 leading-relaxed mb-6">"The driver app is so simple. I tap Start, drive my route, mark students as I pick them up. That's it. No training needed whatsoever."</p>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center text-white font-bold text-sm">MJ</div>
+                        <div>
+                            <div class="font-bold text-slate-900 text-sm">Marcus J.</div>
+                            <div class="text-slate-500 text-xs">School Bus Driver, Metro Education</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card bg-slate-50 p-8 rounded-3xl border border-slate-100 fade-in-up">
+                    <div class="flex mb-4">
+                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-yellow-400"></i>
+                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-yellow-400"></i>
+                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-yellow-400"></i>
+                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-yellow-400"></i>
+                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-yellow-400"></i>
+                    </div>
+                    <p class="text-slate-700 leading-relaxed mb-6">"I can see my son's bus on the map from my kitchen. I know exactly when to walk him to the stop. It's honestly a game-changer for working parents."</p>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">AP</div>
+                        <div>
+                            <div class="font-bold text-slate-900 text-sm">Anita P.</div>
+                            <div class="text-slate-500 text-xs">Parent, Sunrise School District</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing -->
+    <section id="pricing" class="py-24 bg-slate-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16 fade-in-up">
+                <span class="text-blue-600 text-sm font-bold uppercase tracking-widest">Pricing</span>
+                <h2 class="text-4xl md:text-5xl font-black text-slate-900 mt-3 mb-4">Simple, transparent pricing</h2>
+                <p class="text-xl text-slate-600">No hidden fees. Cancel anytime. 30-day free trial on all plans.</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                <!-- Starter -->
+                <div class="pricing-card bg-white rounded-3xl p-8 border border-slate-200 shadow-sm fade-in-up">
+                    <div class="mb-6">
+                        <div class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-2">Starter</div>
+                        <div class="flex items-end gap-1 mb-2">
+                            <span class="text-5xl font-black text-slate-900">$49</span>
+                            <span class="text-slate-500 mb-2">/month</span>
+                        </div>
+                        <p class="text-slate-600 text-sm">Perfect for small schools just getting started</p>
+                    </div>
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-center gap-2 text-sm text-slate-700"><i data-lucide="check" class="w-4 h-4 text-green-500 flex-shrink-0"></i> Up to 5 vehicles</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-700"><i data-lucide="check" class="w-4 h-4 text-green-500 flex-shrink-0"></i> Up to 100 students</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-700"><i data-lucide="check" class="w-4 h-4 text-green-500 flex-shrink-0"></i> Real-time tracking</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-700"><i data-lucide="check" class="w-4 h-4 text-green-500 flex-shrink-0"></i> Parent portal</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-400"><i data-lucide="x" class="w-4 h-4 flex-shrink-0"></i> Advanced analytics</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-400"><i data-lucide="x" class="w-4 h-4 flex-shrink-0"></i> Priority support</li>
+                    </ul>
+                    <a href="/register" class="block w-full py-3 rounded-xl border-2 border-blue-600 text-blue-600 font-bold text-center hover:bg-blue-50 transition">Start Free Trial</a>
+                </div>
+                <!-- Pro (Popular) -->
+                <div class="pricing-card popular rounded-3xl p-8 shadow-2xl shadow-blue-300 fade-in-up relative">
+                    <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-yellow-400 text-yellow-900 text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-wider">Most Popular</div>
+                    <div class="mb-6">
+                        <div class="text-sm font-bold text-blue-200 uppercase tracking-widest mb-2">Pro</div>
+                        <div class="flex items-end gap-1 mb-2">
+                            <span class="text-5xl font-black text-white">$129</span>
+                            <span class="text-blue-200 mb-2">/month</span>
+                        </div>
+                        <p class="text-blue-100 text-sm">For growing schools with bigger fleets</p>
+                    </div>
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-center gap-2 text-sm text-white"><i data-lucide="check" class="w-4 h-4 text-blue-200 flex-shrink-0"></i> Up to 25 vehicles</li>
+                        <li class="flex items-center gap-2 text-sm text-white"><i data-lucide="check" class="w-4 h-4 text-blue-200 flex-shrink-0"></i> Unlimited students</li>
+                        <li class="flex items-center gap-2 text-sm text-white"><i data-lucide="check" class="w-4 h-4 text-blue-200 flex-shrink-0"></i> Real-time tracking</li>
+                        <li class="flex items-center gap-2 text-sm text-white"><i data-lucide="check" class="w-4 h-4 text-blue-200 flex-shrink-0"></i> Parent portal</li>
+                        <li class="flex items-center gap-2 text-sm text-white"><i data-lucide="check" class="w-4 h-4 text-blue-200 flex-shrink-0"></i> Advanced analytics</li>
+                        <li class="flex items-center gap-2 text-sm text-white"><i data-lucide="check" class="w-4 h-4 text-blue-200 flex-shrink-0"></i> Email support (24h)</li>
+                    </ul>
+                    <a href="/register" class="block w-full py-3 rounded-xl bg-white text-blue-700 font-bold text-center hover:bg-blue-50 transition">Start Free Trial</a>
+                </div>
+                <!-- Enterprise -->
+                <div class="pricing-card bg-white rounded-3xl p-8 border border-slate-200 shadow-sm fade-in-up">
+                    <div class="mb-6">
+                        <div class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-2">Enterprise</div>
+                        <div class="flex items-end gap-1 mb-2">
+                            <span class="text-5xl font-black text-slate-900">Custom</span>
+                        </div>
+                        <p class="text-slate-600 text-sm">For school districts managing multiple schools</p>
+                    </div>
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-center gap-2 text-sm text-slate-700"><i data-lucide="check" class="w-4 h-4 text-green-500 flex-shrink-0"></i> Unlimited vehicles</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-700"><i data-lucide="check" class="w-4 h-4 text-green-500 flex-shrink-0"></i> Unlimited students</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-700"><i data-lucide="check" class="w-4 h-4 text-green-500 flex-shrink-0"></i> Multi-school management</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-700"><i data-lucide="check" class="w-4 h-4 text-green-500 flex-shrink-0"></i> Advanced analytics</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-700"><i data-lucide="check" class="w-4 h-4 text-green-500 flex-shrink-0"></i> SLA & dedicated support</li>
+                        <li class="flex items-center gap-2 text-sm text-slate-700"><i data-lucide="check" class="w-4 h-4 text-green-500 flex-shrink-0"></i> Custom integrations</li>
+                    </ul>
+                    <a href="mailto:hello@routify.app" class="block w-full py-3 rounded-xl border-2 border-slate-800 text-slate-800 font-bold text-center hover:bg-slate-50 transition">Contact Sales</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="py-24 bg-blue-600 relative overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(255,255,255,0.15),transparent)]"></div>
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+            <h2 class="text-4xl md:text-5xl font-black text-white mb-6 fade-in-up">Ready to modernize your school transport?</h2>
+            <p class="text-xl text-blue-100 mb-10 fade-in-up">Join 500+ schools already using Routify. Free for 30 days. No credit card required.</p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4 fade-in-up">
+                <a href="/register" class="bg-white text-blue-700 px-10 py-4 rounded-full text-lg font-bold hover:bg-blue-50 transition-all shadow-2xl hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                    Get Started Free <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-16 bg-slate-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-4 gap-12 mb-12">
+                <div class="md:col-span-2">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                            <i data-lucide="bus" class="w-4 h-4 text-white"></i>
+                        </div>
+                        <span class="text-xl font-bold tracking-tight">Routify</span>
+                    </div>
+                    <p class="text-slate-400 max-w-xs leading-relaxed">Smart school transport management. Real-time tracking, zero hardware, instant setup.</p>
+                    <div class="flex gap-4 mt-6">
+                        <a href="#" class="w-9 h-9 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-blue-600 transition"><i data-lucide="twitter" class="w-4 h-4"></i></a>
+                        <a href="#" class="w-9 h-9 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-blue-600 transition"><i data-lucide="linkedin" class="w-4 h-4"></i></a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-bold text-white mb-4">Product</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#features" class="text-slate-400 hover:text-white transition text-sm">Features</a></li>
+                        <li><a href="#pricing" class="text-slate-400 hover:text-white transition text-sm">Pricing</a></li>
+                        <li><a href="#how-it-works" class="text-slate-400 hover:text-white transition text-sm">How it works</a></li>
+                        <li><a href="/register" class="text-slate-400 hover:text-white transition text-sm">Get Started</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-white mb-4">Company</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-slate-400 hover:text-white transition text-sm">About</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white transition text-sm">Contact</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white transition text-sm">Privacy Policy</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white transition text-sm">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-slate-800 pt-8 text-center">
+                <p class="text-slate-500 text-sm">© 2026 Routify Technologies. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        // Intersection Observer for animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.fade-in-up').forEach(el => observer.observe(el));
+
+        // Trigger hero elements immediately
+        document.querySelectorAll('.fade-in-up').forEach(el => {
+            if (el.getBoundingClientRect().top < window.innerHeight) {
+                el.classList.add('visible');
+            }
+        });
+
+        // Role tabs
+        function showRole(role) {
+            ['admin','driver','parent'].forEach(r => {
+                document.getElementById(`role-${r}`).classList.add('hidden');
+                const tab = document.getElementById(`tab-${r}`);
+                tab.className = 'role-tab px-6 py-3 rounded-full bg-white border border-slate-200 font-semibold text-sm transition text-slate-600';
+            });
+            document.getElementById(`role-${role}`).classList.remove('hidden');
+            const activeTab = document.getElementById(`tab-${role}`);
+            activeTab.className = 'role-tab px-6 py-3 rounded-full bg-blue-600 text-white font-semibold text-sm transition';
+        }
+
+        // Stats Counter Animation
+        function animateValue(obj, start, end, duration) {
+            let startTimestamp = null;
+            const suffix = end >= 1000 ? '+' : (end === 500 ? '+' : '');
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const ease = 1 - Math.pow(1 - progress, 3); // ease out cubic
+                const value = Math.floor(ease * (end - start) + start);
+                obj.innerHTML = value.toLocaleString() + suffix;
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    obj.innerHTML = end.toLocaleString() + suffix;
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        const statsObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && !entry.target.dataset.animated) {
+                    const target = parseInt(entry.target.dataset.target);
+                    if (target) {
+                        animateValue(entry.target, 0, target, 2200);
+                        entry.target.dataset.animated = true;
+                    }
+                }
+            });
+        }, { threshold: 0.3 });
+
+        document.querySelectorAll('[data-target]').forEach(el => statsObserver.observe(el));
+
+        // Mobile menu
+        let menuOpen = false;
+        function toggleMenu() {
+            menuOpen = !menuOpen;
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('open', menuOpen);
+        }
+
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(a => {
+            a.addEventListener('click', e => {
+                const target = document.querySelector(a.getAttribute('href'));
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: 'smooth' });
+                    if (menuOpen) toggleMenu();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

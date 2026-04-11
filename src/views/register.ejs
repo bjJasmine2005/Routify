@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <meta name="description" content="Register your school on Routify and start tracking your fleet in minutes.">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚌</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .gradient-bg {
+            background: linear-gradient(145deg, #0a0f2e 0%, #0d2050 35%, #1a3a8f 65%, #2563eb 100%);
+        }
+        .input-field {
+            transition: all 0.2s ease;
+            border: 1.5px solid #e2e8f0;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            pointer-events: none;
+        }
+        .error-msg { display: none; }
+        .password-strength-bar {
+            transition: width 0.3s ease, background 0.3s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex">
+
+    <!-- Left Panel -->
+    <div class="hidden lg:flex lg:w-1/2 gradient-bg relative overflow-hidden flex-col justify-between p-12">
+        <div class="orb w-96 h-96 bg-blue-500 opacity-20 -top-24 -right-24"></div>
+        <div class="orb w-64 h-64 bg-indigo-500 opacity-20 bottom-20 left-10"></div>
+
+        <a href="/" class="flex items-center gap-2 z-10 relative">
+            <div class="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                <i data-lucide="bus" class="w-5 h-5 text-white"></i>
+            </div>
+            <span class="text-xl font-bold text-white">Routify</span>
+        </a>
+
+        <div class="z-10 relative">
+            <h2 class="text-4xl font-black text-white mb-4 leading-tight">Set up your school.<br>In 5 minutes.</h2>
+            <p class="text-blue-200 text-lg mb-10">No hardware. No IT team. Just sign up and go live.</p>
+
+            <div class="space-y-4 mb-8">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white font-bold text-sm">1</div>
+                    <span class="text-blue-100">Register your school</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white font-bold text-sm">2</div>
+                    <span class="text-blue-100">Add your routes, drivers & students</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white font-bold text-sm">3</div>
+                    <span class="text-blue-100">Go live with real-time tracking</span>
+                </div>
+            </div>
+
+            <div class="bg-white/10 rounded-2xl p-4 border border-white/20">
+                <div class="flex items-center gap-2 mb-2">
+                    <i data-lucide="star" class="w-4 h-4 text-yellow-400 fill-yellow-400"></i>
+                    <i data-lucide="star" class="w-4 h-4 text-yellow-400 fill-yellow-400"></i>
+                    <i data-lucide="star" class="w-4 h-4 text-yellow-400 fill-yellow-400"></i>
+                    <i data-lucide="star" class="w-4 h-4 text-yellow-400 fill-yellow-400"></i>
+                    <i data-lucide="star" class="w-4 h-4 text-yellow-400 fill-yellow-400"></i>
+                </div>
+                <p class="text-blue-100 text-sm italic">"We went live in 10 minutes. Incredible product."</p>
+                <p class="text-blue-300 text-xs mt-1">— Principal, Metro Education</p>
+            </div>
+        </div>
+
+        <div class="z-10 relative">
+            <p class="text-blue-300 text-sm">© 2026 Routify Technologies</p>
+        </div>
+    </div>
+
+    <!-- Right Panel - Register Form -->
+    <div class="w-full lg:w-1/2 flex items-center justify-center p-6 bg-slate-50 min-h-screen">
+        <div class="w-full max-w-md py-8">
+            <!-- Mobile logo -->
+            <div class="flex items-center gap-2 mb-8 lg:hidden">
+                <div class="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center">
+                    <i data-lucide="bus" class="w-5 h-5 text-white"></i>
+                </div>
+                <span class="text-xl font-bold text-slate-900">Routify</span>
+            </div>
+
+            <div class="bg-white rounded-3xl shadow-2xl shadow-slate-200 p-10 border border-slate-100">
+                <h1 class="text-2xl font-black text-slate-900 mb-1">Create your school account</h1>
+                <p class="text-slate-500 mb-8">Free for 30 days. No credit card required.</p>
+
+                <!-- Error Message -->
+                <div id="error-msg" style="display:none" class="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-3">
+                    <i data-lucide="alert-circle" class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5"></i>
+                    <p class="text-red-700 text-sm" id="error-text">Something went wrong.</p>
+                </div>
+
+                <!-- Success Message -->
+                <div id="success-msg" style="display:none" class="mb-6 p-4 bg-green-50 border border-green-100 rounded-2xl flex items-start gap-3">
+                    <i data-lucide="check-circle" class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"></i>
+                    <p class="text-green-700 text-sm">Account created! Redirecting to your dashboard...</p>
+                </div>
+
+                <form id="register-form" class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">School / Institution Name</label>
+                        <div class="relative">
+                            <i data-lucide="building-2" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+                            <input id="schoolName" type="text" required
+                                class="input-field w-full pl-11 pr-4 py-3.5 rounded-xl bg-white text-slate-900"
+                                placeholder="Greenfield Academy">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Admin Email</label>
+                        <div class="relative">
+                            <i data-lucide="mail" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+                            <input id="email" type="email" required
+                                class="input-field w-full pl-11 pr-4 py-3.5 rounded-xl bg-white text-slate-900"
+                                placeholder="admin@school.edu">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Password</label>
+                        <div class="relative">
+                            <i data-lucide="lock" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+                            <input id="password" type="password" required minlength="6"
+                                class="input-field w-full pl-11 pr-12 py-3.5 rounded-xl bg-white text-slate-900"
+                                placeholder="Min. 6 characters"
+                                oninput="checkStrength(this.value)">
+                            <button type="button" onclick="togglePassword()" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+                                <i data-lucide="eye" class="w-4 h-4" id="eye-icon"></i>
+                            </button>
+                        </div>
+                        <!-- Password Strength Indicator -->
+                        <div class="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div id="strength-bar" class="password-strength-bar h-full w-0 rounded-full"></div>
+                        </div>
+                        <p id="strength-text" class="text-xs text-slate-400 mt-1"></p>
+                    </div>
+                    
+                    <div class="flex items-start gap-2">
+                        <input id="agree-terms" type="checkbox" required class="w-4 h-4 rounded border-slate-300 accent-blue-600 mt-0.5 flex-shrink-0">
+                        <label for="agree-terms" class="text-sm text-slate-600">I agree to the <a href="#" class="text-blue-600 font-semibold hover:underline">Terms of Service</a> and <a href="#" class="text-blue-600 font-semibold hover:underline">Privacy Policy</a></label>
+                    </div>
+
+                    <button type="submit" id="register-btn" class="w-full py-4 bg-blue-600 text-white rounded-xl font-bold text-base shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                        <i data-lucide="rocket" class="w-5 h-5"></i>
+                        <span id="btn-text">Create School Account</span>
+                    </button>
+                </form>
+
+                <p class="text-center mt-8 text-slate-500 text-sm">
+                    Already have an account?
+                    <a href="/login" class="text-blue-600 font-bold hover:text-blue-700 transition">Sign in →</a>
+                </p>
+            </div>
+
+            <p class="text-center mt-4 text-xs text-slate-500">
+                🔒 Your data is encrypted and secure. We never share it with third parties.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function togglePassword() {
+            const passInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eye-icon');
+            if (passInput.type === 'password') {
+                passInput.type = 'text';
+                eyeIcon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                passInput.type = 'password';
+                eyeIcon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons();
+        }
+
+        function checkStrength(val) {
+            const bar = document.getElementById('strength-bar');
+            const text = document.getElementById('strength-text');
+            if (!val) { bar.style.width = '0'; text.textContent = ''; return; }
+            let strength = 0;
+            if (val.length >= 6) strength++;
+            if (val.length >= 10) strength++;
+            if (/[A-Z]/.test(val)) strength++;
+            if (/[0-9]/.test(val)) strength++;
+            if (/[^A-Za-z0-9]/.test(val)) strength++;
+
+            const levels = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
+            const colors = ['', '#ef4444', '#f97316', '#eab308', '#22c55e', '#16a34a'];
+            const widths = ['0%', '20%', '40%', '60%', '80%', '100%'];
+            bar.style.width = widths[strength];
+            bar.style.background = colors[strength];
+            text.textContent = levels[strength];
+            text.style.color = colors[strength];
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('error-msg');
+            document.getElementById('error-text').textContent = msg;
+            el.style.display = 'flex';
+            document.getElementById('success-msg').style.display = 'none';
+        }
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('register-btn');
+            const btnText = document.getElementById('btn-text');
+
+            btn.disabled = true;
+            btnText.textContent = 'Creating account...';
+
+            const schoolName = document.getElementById('schoolName').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ schoolName, email, password })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showError(data.error || 'Registration failed. This email may already be in use.');
+                    btn.disabled = false;
+                    btnText.textContent = 'Create School Account';
+                    return;
+                }
+
+                document.getElementById('success-msg').style.display = 'flex';
+                document.getElementById('error-msg').style.display = 'none';
+
+                // Register now returns a token directly — store and redirect
+                if (data.token) {
+                    localStorage.setItem('routify_token', data.token);
+                    localStorage.setItem('routify_user', JSON.stringify(data.user));
+                }
+
+                setTimeout(() => {
+                    window.location.href = '/admin/dashboard';
+                }, 1200);
+
+            } catch (err) {
+                showError('Connection error. Please check your internet and try again.');
+                btn.disabled = false;
+                btnText.textContent = 'Create School Account';
+            }
+        });
+    </script>
+</body>
+</html>

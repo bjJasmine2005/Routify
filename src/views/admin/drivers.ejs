@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <meta name="description" content="Manage Routify school transport - Drivers.">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚌</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .sidebar-item { transition: all 0.15s ease; color: #64748b; }
+        .sidebar-item:hover { background: rgba(37,99,235,0.08); color: #2563eb; }
+        .sidebar-item.active { background: rgba(37,99,235,0.1); color: #2563eb; border-right: 3px solid #2563eb; font-weight: 600; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.5); backdrop-filter: blur(4px); z-index: 50; align-items: center; justify-content: center; padding: 16px; }
+        .modal-overlay.open { display: flex; }
+        .input-field { border: 1.5px solid #e2e8f0; transition: all 0.2s; }
+        .input-field:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .toast { position: fixed; bottom: 24px; right: 16px; left: 16px; z-index: 100; transform: translateY(80px); opacity:0; transition: all 0.3s; }
+        @media(min-width:480px){ .toast { left: auto; width: auto; min-width: 240px; } }
+        .toast.show { transform: translateY(0); opacity:1; }
+        #sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.5); backdrop-filter: blur(4px); z-index: 40; }
+        #sidebar-overlay.show { display: block; }
+        #sidebar { transition: transform 0.3s ease; }
+        @media (max-width: 768px) {
+            #sidebar { position: fixed; top: 0; left: 0; bottom: 0; z-index: 50; transform: translateX(-100%); width: 280px !important; box-shadow: 0 0 40px rgba(0,0,0,0.2); }
+            #sidebar.open { transform: translateX(0); }
+        }
+        tr:hover td { background: #f8fafc; }
+    </style>
+</head>
+<body class="bg-slate-50 flex h-screen overflow-hidden">
+
+    <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-64 bg-white border-r border-slate-200 flex flex-col flex-shrink-0">
+        <div class="p-5 flex items-center justify-between border-b border-slate-100">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
+                    <i data-lucide="bus" class="w-4 h-4 text-white"></i>
+                </div>
+                <span class="text-lg font-bold tracking-tight text-slate-900">Routify</span>
+            </div>
+            <button onclick="closeSidebar()" class="md:hidden text-slate-400 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div class="px-4 py-3 bg-blue-50 border-b border-blue-100">
+            <p class="text-xs text-blue-600 font-semibold uppercase tracking-wide">Institution</p>
+            <p class="text-sm font-bold text-slate-800 mt-0.5 truncate" id="inst-name">Loading...</p>
+        </div>
+        <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+            <a href="/admin/dashboard" onclick="closeSidebar()" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-xl"><i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm">Dashboard</span></a>
+            <a href="/admin/routes" onclick="closeSidebar()" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-xl"><i data-lucide="map" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm">Routes</span></a>
+            <a href="/admin/drivers" onclick="closeSidebar()" class="sidebar-item active flex items-center gap-3 px-3 py-2.5 rounded-xl"><i data-lucide="users" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm">Drivers</span></a>
+            <a href="/admin/students" onclick="closeSidebar()" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-xl"><i data-lucide="graduation-cap" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm">Students</span></a>
+            <a href="/admin/vehicles" onclick="closeSidebar()" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-xl"><i data-lucide="truck" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm">Vehicles</span></a>
+        </nav>
+        <div class="p-3 border-t border-slate-100">
+            <button onclick="logout()" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-left hover:text-red-600 hover:bg-red-50">
+                <i data-lucide="log-out" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm">Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="flex-1 flex flex-col overflow-hidden min-w-0">
+        <header class="h-14 md:h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 flex-shrink-0">
+            <div class="flex items-center gap-3">
+                <button onclick="openSidebar()" class="md:hidden p-2 rounded-xl hover:bg-slate-100 transition text-slate-600">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+                <div>
+                    <h1 class="text-base md:text-lg font-bold text-slate-900">Drivers</h1>
+                    <p class="text-xs text-slate-500" id="driver-count-header">Loading...</p>
+                </div>
+            </div>
+            <button onclick="openAddModal()" class="bg-blue-600 text-white px-3 md:px-4 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold flex items-center gap-1.5 hover:bg-blue-700 transition shadow-sm shadow-blue-200">
+                <i data-lucide="plus" class="w-4 h-4"></i> <span class="hidden sm:inline">Add</span> Driver
+            </button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 md:p-6">
+            <div class="mb-4 flex flex-wrap gap-3">
+                <div class="relative flex-1 min-w-[180px] max-w-xs">
+                    <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                    <input type="text" id="search-input" oninput="filterDrivers()" placeholder="Search drivers..." class="input-field w-full pl-10 pr-4 py-2.5 rounded-xl bg-white text-sm">
+                </div>
+            </div>
+
+            <div id="loading-state" class="bg-white rounded-2xl p-12 text-center shadow-sm border border-slate-100">
+                <div class="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                <p class="text-slate-500 text-sm">Loading drivers...</p>
+            </div>
+
+            <!-- Mobile Card View -->
+            <div id="mobile-cards" class="hidden sm:hidden space-y-3"></div>
+
+            <!-- Desktop Table View -->
+            <div id="table-container" class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left min-w-[520px]">
+                        <thead class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wide border-b border-slate-100">
+                            <tr>
+                                <th class="px-6 py-3.5 font-semibold">Driver</th>
+                                <th class="px-6 py-3.5 font-semibold">Email</th>
+                                <th class="px-6 py-3.5 font-semibold">Phone</th>
+                                <th class="px-6 py-3.5 font-semibold">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="drivers-table" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+                <div id="empty-state" class="hidden p-12 text-center">
+                    <div class="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="users" class="w-8 h-8 text-slate-400"></i>
+                    </div>
+                    <h3 class="text-slate-800 font-bold mb-1">No drivers yet</h3>
+                    <p class="text-slate-500 text-sm mb-4">Add your first driver to get started.</p>
+                    <button onclick="openAddModal()" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition inline-flex items-center gap-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Add First Driver
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Modal -->
+    <div id="add-modal" class="modal-overlay" onclick="closeOnOverlay(event,'add-modal')">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 md:p-8">
+            <div class="flex items-center justify-between mb-5">
+                <h2 class="text-lg md:text-xl font-bold text-slate-900">Add New Driver</h2>
+                <button onclick="closeModal('add-modal')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition">
+                    <i data-lucide="x" class="w-4 h-4 text-slate-500"></i>
+                </button>
+            </div>
+            <div id="modal-error" style="display:none" class="mb-4 p-3.5 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700"></div>
+            <form id="add-driver-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">Full Name *</label>
+                    <input id="d-name" type="text" required class="input-field w-full px-4 py-3 rounded-xl text-sm" placeholder="John Doe">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">Email *</label>
+                    <input id="d-email" type="email" required class="input-field w-full px-4 py-3 rounded-xl text-sm" placeholder="driver@school.com">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">Phone</label>
+                    <input id="d-phone" type="tel" class="input-field w-full px-4 py-3 rounded-xl text-sm" placeholder="+1 (555) 000-0000">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">Password *</label>
+                    <input id="d-password" type="password" required minlength="6" class="input-field w-full px-4 py-3 rounded-xl text-sm" placeholder="Min. 6 characters">
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="closeModal('add-modal')" class="flex-1 py-3 border-2 border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">Cancel</button>
+                    <button type="submit" id="add-btn" class="flex-1 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Add Driver
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div id="delete-modal" class="modal-overlay" onclick="closeOnOverlay(event,'delete-modal')">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
+            <div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="trash-2" class="w-7 h-7 text-red-500"></i>
+            </div>
+            <h2 class="text-lg font-bold text-slate-900 mb-2">Delete Driver?</h2>
+            <p class="text-slate-500 text-sm mb-6">This will permanently remove <strong id="delete-name"></strong>.</p>
+            <div class="flex gap-3">
+                <button onclick="closeModal('delete-modal')" class="flex-1 py-3 border-2 border-slate-200 rounded-xl text-sm font-semibold hover:bg-slate-50 transition">Cancel</button>
+                <button onclick="confirmDelete()" class="flex-1 py-3 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 transition">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3">
+        <i data-lucide="check-circle" class="w-5 h-5 text-green-400"></i>
+        <span class="text-sm font-medium" id="toast-text"></span>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const token = localStorage.getItem('routify_token');
+        const user = JSON.parse(localStorage.getItem('routify_user') || '{}');
+        if (!token) window.location.href = '/login';
+        if (user.name) document.getElementById('inst-name').textContent = user.name;
+        function logout() { localStorage.removeItem('routify_token'); localStorage.removeItem('routify_user'); window.location.href = '/login'; }
+        function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('show'); }
+        function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('show'); }
+
+        let allDrivers = [], deleteId = null;
+
+        async function loadDrivers() {
+            try {
+                const res = await fetch('/api/drivers', { headers: { 'Authorization': `Bearer ${token}` } });
+                allDrivers = await res.json();
+                renderDrivers(allDrivers);
+            } catch { showToast('Failed to load drivers', 'error'); }
+        }
+
+        function renderDrivers(drivers) {
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('table-container').classList.remove('hidden');
+            const tbody = document.getElementById('drivers-table');
+            const empty = document.getElementById('empty-state');
+            document.getElementById('driver-count-header').textContent = `${drivers.length} driver${drivers.length !== 1 ? 's' : ''} registered`;
+
+            if (drivers.length === 0) { tbody.innerHTML = ''; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+
+            tbody.innerHTML = drivers.map(d => `
+                <tr>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center text-blue-700 font-bold text-sm flex-shrink-0">${d.name.charAt(0).toUpperCase()}</div>
+                            <div>
+                                <div class="font-semibold text-slate-800">${d.name}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-slate-600 text-sm">${d.email}</td>
+                    <td class="px-6 py-4 text-slate-600 text-sm">${d.phone || '—'}</td>
+                    <td class="px-6 py-4">
+                        <button onclick="openDeleteModal('${d._id || d.id}','${d.name}')" class="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+
+            // Mobile cards
+            const mobileCards = document.getElementById('mobile-cards');
+            if (window.innerWidth < 640) {
+                mobileCards.classList.remove('hidden');
+                document.getElementById('table-container').classList.add('hidden');
+                mobileCards.innerHTML = drivers.map(d => `
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center gap-4">
+                        <div class="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-700 font-bold text-lg flex-shrink-0">${d.name.charAt(0).toUpperCase()}</div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-bold text-slate-900 truncate">${d.name}</p>
+                            <p class="text-xs text-slate-500 truncate">${d.email}</p>
+                            <p class="text-xs text-slate-400">${d.phone || 'No phone'}</p>
+                        </div>
+                        <button onclick="openDeleteModal('${d._id || d.id}','${d.name}')" class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl flex-shrink-0">
+                            <i data-lucide="trash-2" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                `).join('');
+                lucide.createIcons();
+            }
+        }
+
+        function filterDrivers() {
+            const q = document.getElementById('search-input').value.toLowerCase();
+            renderDrivers(allDrivers.filter(d => d.name.toLowerCase().includes(q) || d.email.toLowerCase().includes(q)));
+        }
+
+        function openAddModal() { document.getElementById('add-driver-form').reset(); document.getElementById('modal-error').style.display='none'; document.getElementById('add-modal').classList.add('open'); }
+        function openDeleteModal(id, name) { deleteId = id; document.getElementById('delete-name').textContent = name; document.getElementById('delete-modal').classList.add('open'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+        function closeOnOverlay(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
+
+        document.getElementById('add-driver-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('add-btn');
+            btn.disabled = true; btn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Adding...';
+            try {
+                const res = await fetch('/api/drivers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ name: document.getElementById('d-name').value, email: document.getElementById('d-email').value, phone: document.getElementById('d-phone').value, password: document.getElementById('d-password').value })
+                });
+                const data = await res.json();
+                if (!res.ok) { document.getElementById('modal-error').textContent = data.error; document.getElementById('modal-error').style.display='block'; }
+                else { closeModal('add-modal'); showToast(`Driver added!`); loadDrivers(); }
+            } catch { document.getElementById('modal-error').textContent = 'Connection error.'; document.getElementById('modal-error').style.display='block'; }
+            btn.disabled = false; btn.innerHTML = '<i data-lucide="plus" class="w-4 h-4"></i> Add Driver'; lucide.createIcons();
+        });
+
+        async function confirmDelete() {
+            try {
+                await fetch(`/api/drivers/${deleteId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+                closeModal('delete-modal'); showToast('Driver removed'); loadDrivers();
+            } catch { showToast('Failed to delete', 'error'); }
+        }
+
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-text').textContent = msg;
+            t.className = `toast ${type === 'error' ? 'bg-red-600' : 'bg-slate-900'} text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 show`;
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        loadDrivers();
+    </script>
+</body>
+</html>

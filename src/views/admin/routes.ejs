@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <meta name="description" content="Manage Routify school transport - Routes.">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚌</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .sidebar-item { transition: all 0.15s ease; color: #64748b; }
+        .sidebar-item:hover { background: rgba(37,99,235,0.08); color: #2563eb; }
+        .sidebar-item.active { background: rgba(37,99,235,0.1); color: #2563eb; border-right: 3px solid #2563eb; font-weight: 600; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.5); backdrop-filter: blur(4px); z-index: 50; align-items: center; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .input-field { border: 1.5px solid #e2e8f0; transition: all 0.2s; }
+        .input-field:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .toast { position: fixed; bottom: 24px; right: 24px; z-index: 100; transform: translateY(80px); opacity:0; transition: all 0.3s; }
+        .toast.show { transform: translateY(0); opacity:1; }
+        #sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.5); backdrop-filter: blur(4px); z-index: 40; }
+        #sidebar-overlay.show { display: block; }
+        #sidebar { transition: transform 0.3s ease; }
+        @media (max-width: 768px) {
+            #sidebar { position: fixed; top: 0; left: 0; bottom: 0; z-index: 50; transform: translateX(-100%); width: 280px !important; box-shadow: 0 0 40px rgba(0,0,0,0.2); }
+            #sidebar.open { transform: translateX(0); }
+        }
+        #route-map { height: 300px; border-radius: 12px; z-index: 0; }
+        .leaflet-pane, .leaflet-top, .leaflet-bottom { z-index: 1 !important; }
+        .stop-item { cursor: grab; user-select: none; transition: background 0.15s; }
+        .stop-item:hover { background: #f0f9ff; }
+        .stop-item.dragging { opacity: 0.5; }
+    </style>
+</head>
+<body class="bg-slate-50 flex h-screen overflow-hidden">
+
+    <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-64 bg-white border-r border-slate-200 flex flex-col flex-shrink-0">
+        <div class="p-5 flex items-center justify-between border-b border-slate-100">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
+                    <i data-lucide="bus" class="w-4 h-4 text-white"></i>
+                </div>
+                <span class="text-lg font-bold tracking-tight text-slate-900">Routify</span>
+            </div>
+            <button onclick="closeSidebar()" class="md:hidden text-slate-400 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div class="px-4 py-3 bg-blue-50 border-b border-blue-100">
+            <p class="text-xs text-blue-600 font-semibold uppercase tracking-wide">Institution</p>
+            <p class="text-sm font-bold text-slate-800 mt-0.5 truncate" id="inst-name">Loading...</p>
+        </div>
+        <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+            <a href="/admin/dashboard" onclick="closeSidebar()" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-xl"><i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm">Dashboard</span></a>
+            <a href="/admin/routes" onclick="closeSidebar()" class="sidebar-item active flex items-center gap-3 px-3 py-2.5 rounded-xl"><i data-lucide="map" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm">Routes</span></a>
+            <a href="/admin/drivers" onclick="closeSidebar()" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-xl"><i data-lucide="users" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm">Drivers</span></a>
+            <a href="/admin/students" onclick="closeSidebar()" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-xl"><i data-lucide="graduation-cap" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm">Students</span></a>
+            <a href="/admin/vehicles" onclick="closeSidebar()" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-xl"><i data-lucide="truck" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm">Vehicles</span></a>
+        </nav>
+        <div class="p-3 border-t border-slate-100">
+            <button onclick="logout()" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-left hover:text-red-600 hover:bg-red-50">
+                <i data-lucide="log-out" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm">Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden min-w-0">
+        <header class="h-14 md:h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 flex-shrink-0">
+            <div class="flex items-center gap-3">
+                <button onclick="openSidebar()" class="md:hidden p-2 rounded-xl hover:bg-slate-100 transition text-slate-600">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+                <div>
+                    <h1 class="text-base md:text-lg font-bold text-slate-900">Routes</h1>
+                    <p class="text-xs text-slate-500" id="route-count-header">Loading...</p>
+                </div>
+            </div>
+            <button onclick="openAddModal()" class="bg-blue-600 text-white px-3 md:px-4 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold flex items-center gap-1.5 hover:bg-blue-700 transition shadow-sm shadow-blue-200">
+                <i data-lucide="plus" class="w-4 h-4"></i> <span class="hidden sm:inline">Add</span> Route
+            </button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6">
+            <div class="mb-4">
+                <div class="relative max-w-xs">
+                    <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                    <input type="text" id="search-input" oninput="filterRoutes()" placeholder="Search routes..." class="input-field w-full pl-10 pr-4 py-2.5 rounded-xl bg-white text-sm">
+                </div>
+            </div>
+
+            <div id="loading-state" class="bg-white rounded-2xl p-12 text-center shadow-sm border border-slate-100">
+                <div class="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                <p class="text-slate-500 text-sm">Loading routes...</p>
+            </div>
+
+            <div id="routes-grid" class="hidden">
+                <div id="empty-state" class="hidden bg-white rounded-2xl p-12 text-center shadow-sm border border-slate-100">
+                    <div class="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="map" class="w-8 h-8 text-slate-400"></i>
+                    </div>
+                    <h3 class="text-slate-800 font-bold mb-1">No routes configured</h3>
+                    <p class="text-slate-500 text-sm mb-4">Create your first transport route to assign students and drivers.</p>
+                    <button onclick="openAddModal()" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition inline-flex items-center gap-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Create First Route
+                    </button>
+                </div>
+                <div id="routes-container" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Route Modal -->
+    <div id="add-modal" class="modal-overlay" onclick="closeOnOverlay(event,'add-modal')">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 mx-4">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900">Create New Route</h2>
+                    <p class="text-sm text-slate-500 mt-0.5">Define a transport route for your fleet</p>
+                </div>
+                <button onclick="closeModal('add-modal')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition">
+                    <i data-lucide="x" class="w-4 h-4 text-slate-500"></i>
+                </button>
+            </div>
+            <div id="modal-error" class="hidden mb-4 p-3.5 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700"></div>
+            <form id="add-route-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">Route Name *</label>
+                    <input id="r-name" type="text" required class="input-field w-full px-4 py-3 rounded-xl text-sm" placeholder="e.g. Downtown Express">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">Start Location</label>
+                    <input id="r-start" type="text" class="input-field w-full px-4 py-3 rounded-xl text-sm" placeholder="e.g. School Campus, Main Gate">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">End Location</label>
+                    <input id="r-end" type="text" class="input-field w-full px-4 py-3 rounded-xl text-sm" placeholder="e.g. North District, Bus Stop 12">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">Vehicle / Bus</label>
+                    <select id="r-vehicle" class="vehicle-select-populate input-field w-full px-4 py-3 rounded-xl text-sm bg-white">
+                        <option value="">No Vehicle Assigned</option>
+                    </select>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="closeModal('add-modal')" class="flex-1 py-3 border-2 border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">Cancel</button>
+                    <button type="submit" id="add-btn" class="flex-1 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Create Route
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Assign Vehicle Modal -->
+    <div id="assign-vehicle-modal" class="modal-overlay" onclick="closeOnOverlay(event,'assign-vehicle-modal')">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 mx-4">
+            <div class="flex items-center justify-between mb-5">
+                <h2 class="text-lg font-bold text-slate-900">Assign Vehicle</h2>
+                <button onclick="closeModal('assign-vehicle-modal')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition"><i data-lucide="x" class="w-4 h-4 text-slate-500"></i></button>
+            </div>
+            <p class="text-slate-500 text-sm mb-4">Select the vehicle for this route:</p>
+            <select id="assign-vehicle-select" class="vehicle-select-populate input-field w-full px-4 py-3 rounded-xl text-sm mb-6 bg-white"></select>
+            <div class="flex gap-3">
+                <button onclick="closeModal('assign-vehicle-modal')" class="flex-1 py-3 border-2 border-slate-200 rounded-xl text-sm font-semibold hover:bg-slate-50 transition">Cancel</button>
+                <button onclick="saveVehicleAssignment()" class="flex-1 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition">Save Assignment</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirm Modal -->
+    <div id="delete-modal" class="modal-overlay" onclick="closeOnOverlay(event,'delete-modal')">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 mx-4 text-center">
+            <div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="trash-2" class="w-7 h-7 text-red-500"></i>
+            </div>
+            <h2 class="text-lg font-bold text-slate-900 mb-2">Delete Route?</h2>
+            <p class="text-slate-500 text-sm mb-6">This will remove <strong id="delete-name"></strong>. Students on this route will be unassigned.</p>
+            <div class="flex gap-3">
+                <button onclick="closeModal('delete-modal')" class="flex-1 py-3 border-2 border-slate-200 rounded-xl text-sm font-semibold hover:bg-slate-50 transition">Cancel</button>
+                <button onclick="confirmDelete()" class="flex-1 py-3 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 transition">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3">
+        <i data-lucide="check-circle" class="w-5 h-5 text-green-400"></i>
+        <span class="text-sm font-medium" id="toast-text"></span>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const token = localStorage.getItem('routify_token');
+        const user = JSON.parse(localStorage.getItem('routify_user') || '{}');
+        if (!token) window.location.href = '/login';
+        if (user.name) document.getElementById('inst-name').textContent = user.name;
+        function logout() { localStorage.removeItem('routify_token'); localStorage.removeItem('routify_user'); window.location.href = '/login'; }
+        function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('show'); }
+        function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('show'); }
+
+        let allRoutes = [], allVehicles = [];
+        let deleteId = null;
+        let assignRouteId = null;
+
+        async function loadData() {
+            try {
+                const [rRes, vRes] = await Promise.all([
+                    fetch('/api/routes', { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('/api/vehicles', { headers: { 'Authorization': `Bearer ${token}` } })
+                ]);
+                allRoutes = await rRes.json();
+                allVehicles = await vRes.json();
+                
+                // Populate vehicle selectors
+                const selects = document.querySelectorAll('.vehicle-select-populate');
+                selects.forEach(s => {
+                    const currentVal = s.value;
+                    s.innerHTML = '<option value="">No Vehicle Assigned</option>' + 
+                        allVehicles.map(v => `<option value="${v._id || v.id}">${v.plate_number} ${v.model ? '('+v.model+')' : ''}</option>`).join('');
+                    s.value = currentVal;
+                });
+
+                renderRoutes(allRoutes);
+            } catch { showToast('Failed to load data', 'error'); }
+        }
+
+        function openAssignVehicleModal(routeId, currentVehicleId) {
+            assignRouteId = routeId;
+            document.getElementById('assign-vehicle-select').value = currentVehicleId || "";
+            document.getElementById('assign-vehicle-modal').classList.add('open');
+        }
+
+        async function saveVehicleAssignment() {
+            const vehicleId = document.getElementById('assign-vehicle-select').value;
+            await updateRoute(assignRouteId, { vehicle_id: vehicleId || null });
+            closeModal('assign-vehicle-modal');
+            showToast('Vehicle assigned successfully');
+        }
+
+        async function updateRoute(id, data) {
+            await fetch(`/api/routes/${id}`, { 
+                method: 'PATCH', 
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
+                body: JSON.stringify(data) 
+            });
+            loadData();
+        }
+
+        function renderRoutes(routes) {
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('routes-grid').classList.remove('hidden');
+            const container = document.getElementById('routes-container');
+            const empty = document.getElementById('empty-state');
+            document.getElementById('route-count-header').textContent = `${routes.length} route${routes.length !== 1 ? 's' : ''} configured`;
+
+            const vehiclePlate = (id) => {
+                const v = allVehicles.find(x => (x._id || x.id) === id);
+                return v ? v.plate_number : '<span class="text-slate-400 italic">Unassigned</span>';
+            };
+
+            if (routes.length === 0) { container.innerHTML = ''; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+
+            container.innerHTML = routes.map((r, i) => {
+                return `
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 hover:shadow-md transition">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="w-11 h-11 bg-blue-100 rounded-2xl flex items-center justify-center">
+                            <i data-lucide="map-pin" class="w-5 h-5 text-blue-600"></i>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="openRouteMap('${r._id || r.id}','${r.name.replace(/'/g,"\\'") }')" title="View Map" class="text-green-500 hover:text-green-700 transition p-1.5 rounded-lg hover:bg-green-50">
+                                <i data-lucide="map" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="optimizeRoute('${r._id || r.id}')" title="Optimize with OSRM" class="text-blue-500 hover:text-blue-700 transition p-1.5 rounded-lg hover:bg-blue-50">
+                                <i data-lucide="zap" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="openDeleteModal('${r._id || r.id}','${r.name}')" class="text-slate-300 hover:text-red-500 transition p-1.5 rounded-lg hover:bg-red-50">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <a href="#" onclick="openAssignVehicleModal('${r._id || r.id}', '${r.vehicle_id || ''}')" class="group">
+                        <h3 class="font-bold text-slate-900 mb-1 group-hover:text-blue-600 transition">${r.name}</h3>
+                        <div class="flex items-center gap-1.5 text-[11px] font-bold text-blue-600 uppercase tracking-wider mb-3">
+                            <i data-lucide="truck" class="w-3 h-3"></i>
+                            <span>Bus: ${vehiclePlate(r.vehicle_id)}</span>
+                        </div>
+                    </a>
+                    <div class="space-y-1.5 mb-4">
+                        <div class="flex items-center gap-2 text-xs text-slate-500">
+                            <i data-lucide="arrow-right-circle" class="w-3.5 h-3.5"></i>
+                            <span class="truncate">${r.start_location || 'Start not set'}</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-slate-500">
+                            <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                            <span class="truncate">${r.end_location || 'End not set'}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-1.5 text-xs text-slate-600">
+                            <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                            <span>${r.student_count || 0} students</span>
+                        </div>
+                        <div class="w-1 h-1 bg-slate-300 rounded-full"></div>
+                        <button onclick="openRouteMap('${r._id || r.id}','${r.name.replace(/'/g,"\\'") }')" class="text-xs px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full font-semibold hover:bg-blue-200 transition">View Map</button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function filterRoutes() {
+            const q = document.getElementById('search-input').value.toLowerCase();
+            renderRoutes(allRoutes.filter(r => r.name.toLowerCase().includes(q) || (r.start_location || '').toLowerCase().includes(q)));
+        }
+
+        function openAddModal() { document.getElementById('add-route-form').reset(); document.getElementById('modal-error').classList.add('hidden'); document.getElementById('add-modal').classList.add('open'); }
+        function openDeleteModal(id, name) { deleteId = id; document.getElementById('delete-name').textContent = name; document.getElementById('delete-modal').classList.add('open'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+        function closeOnOverlay(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
+
+        document.getElementById('add-route-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('add-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Creating...';
+
+            try {
+                const res = await fetch('/api/routes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ 
+                        name: document.getElementById('r-name').value, 
+                        start_location: document.getElementById('r-start').value, 
+                        end_location: document.getElementById('r-end').value,
+                        vehicle_id: document.getElementById('r-vehicle').value || null
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) { document.getElementById('modal-error').textContent = data.error; document.getElementById('modal-error').classList.remove('hidden'); }
+                else { closeModal('add-modal'); showToast('Route created!'); loadData(); }
+            } catch { document.getElementById('modal-error').textContent = 'Connection error.'; document.getElementById('modal-error').classList.remove('hidden'); }
+
+            btn.disabled = false; btn.innerHTML = '<i data-lucide="plus" class="w-4 h-4"></i> Create Route'; lucide.createIcons();
+        });
+
+        async function confirmDelete() {
+            try {
+                await fetch(`/api/routes/${deleteId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+                closeModal('delete-modal'); showToast('Route deleted'); loadData();
+            } catch { showToast('Failed to delete', 'error'); }
+        }
+
+        async function optimizeRoute(routeId) {
+            showToast('Optimizing route with AI...', 'info');
+            try {
+                const res = await fetch(`/api/routes/${routeId}/optimize`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(data.message || 'Route optimized successfully');
+                } else {
+                    showToast(data.error || 'Optimization failed', 'error');
+                }
+            } catch (error) {
+                showToast('Failed to connect to optimization service', 'error');
+            }
+        }
+
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-text').textContent = msg;
+            toast.className = `toast ${type === 'error' ? 'bg-red-600' : 'bg-slate-900'} text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 show`;
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
+        }
+
+        loadData();
+
+        // ─── Route Map Builder ────────────────────────────────────────────────
+        let routeMap = null;
+        let routeMapRouteId = null;
+        let stopMarkers = [];
+        let routePath = null;
+        let currentStopOrder = [];
+
+        async function openRouteMap(routeId, routeName) {
+            routeMapRouteId = routeId;
+            document.getElementById('map-modal-title').textContent = `🗺️ ${routeName}`;
+            document.getElementById('route-map-modal').classList.add('open');
+            document.getElementById('map-stats').textContent = 'Loading...';
+            document.getElementById('stop-order-list').innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Loading stops...</p>';
+
+            // Init map after modal opens (needs rendered DOM)
+            setTimeout(() => {
+                if (!routeMap) {
+                    routeMap = L.map('route-map').setView([20.5937, 78.9629], 5);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(routeMap);
+                } else {
+                    // Clear previous
+                    stopMarkers.forEach(m => routeMap.removeLayer(m));
+                    stopMarkers = [];
+                    if (routePath) { routeMap.removeLayer(routePath); routePath = null; }
+                }
+                loadRouteMapData(routeId);
+            }, 100);
+        }
+
+        async function loadRouteMapData(routeId) {
+            try {
+                const res = await fetch(`/api/routes/${routeId}/students`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                const students = data.students || [];
+                currentStopOrder = students.map(s => s._id || s.id);
+
+                const geocoded = students.filter(s => s.pickup_lat && s.pickup_lng);
+                document.getElementById('map-stats').textContent = `${geocoded.length} of ${students.length} stops geocoded`;
+
+                if (geocoded.length > 0) {
+                    const bounds = [];
+                    geocoded.forEach((s, i) => {
+                        const icon = L.divIcon({
+                            className: '',
+                            html: `<div style="background:#2563eb;color:white;min-width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;border:2px solid white;box-shadow:0 2px 8px rgba(37,99,235,0.4)">${i+1}</div>`,
+                            iconAnchor: [12, 12]
+                        });
+                        const m = L.marker([s.pickup_lat, s.pickup_lng], { icon }).addTo(routeMap)
+                            .bindPopup(`<b>${s.name}</b><br>${s.pickup_location || 'Stop ' + (i+1)}`);
+                        stopMarkers.push(m);
+                        bounds.push([s.pickup_lat, s.pickup_lng]);
+                    });
+                    routeMap.fitBounds(bounds, { padding: [30, 30] });
+                }
+
+                // Build stop order list
+                const list = document.getElementById('stop-order-list');
+                if (students.length === 0) {
+                    list.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">No students on this route</p>';
+                } else {
+                    list.innerHTML = students.map((s, i) => `
+                        <div class="stop-item flex items-center gap-3 p-2.5 rounded-xl border border-slate-100 bg-white" data-id="${s._id || s.id}">
+                            <span class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0">${i+1}</span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-semibold text-slate-800 truncate">${s.name}</p>
+                                <p class="text-[11px] text-slate-400 truncate">${s.pickup_location || (s.pickup_lat ? 'Pinned' : 'No location')}</p>
+                            </div>
+                            ${s.pickup_lat ? '<span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold flex-shrink-0">📍</span>' : '<span class="text-[10px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded font-bold flex-shrink-0">No Pin</span>'}
+                        </div>`).join('');
+                }
+            } catch(e) {
+                document.getElementById('map-stats').textContent = 'Failed to load';
+            }
+        }
+
+        async function optimizeRouteMap() {
+            const btn = document.getElementById('map-optimize-btn');
+            btn.disabled = true; btn.textContent = '⚡ Optimizing...';
+            try {
+                const res = await fetch(`/api/routes/${routeMapRouteId}/optimize`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (data.geometry) {
+                    if (routePath) routeMap.removeLayer(routePath);
+                    routePath = L.geoJSON(data.geometry, { style: { color: '#2563eb', weight: 4, opacity: 0.7, dashArray: '8,4' } }).addTo(routeMap);
+                }
+                if (data.optimized && data.optimized.length > 0) {
+                    // Re-number markers
+                    stopMarkers.forEach(m => routeMap.removeLayer(m)); stopMarkers = [];
+                    data.optimized.forEach((s, i) => {
+                        if (!s.pickup_lat) return;
+                        const icon = L.divIcon({
+                            className: '',
+                            html: `<div style="background:#16a34a;color:white;min-width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;border:2px solid white;box-shadow:0 2px 8px rgba(22,163,74,0.4)">${i+1}</div>`,
+                            iconAnchor: [12, 12]
+                        });
+                        const m = L.marker([s.pickup_lat, s.pickup_lng], { icon }).addTo(routeMap)
+                            .bindPopup(`<b>${s.name}</b><br>Stop ${i+1}`);
+                        stopMarkers.push(m);
+                    });
+                    currentStopOrder = data.optimized.map(s => s._id || s.id);
+                    showToast(data.message || 'Route optimized!');
+                } else {
+                    showToast(data.message || 'Optimized', 'info');
+                }
+            } catch(e) { showToast('Optimization failed', 'error'); }
+            btn.disabled = false; btn.textContent = '⚡ Optimize Order';
+        }
+
+        async function saveStopOrder() {
+            try {
+                const items = document.querySelectorAll('#stop-order-list .stop-item');
+                const order = Array.from(items).map(el => el.dataset.id);
+                await fetch(`/api/routes/${routeMapRouteId}/stop-order`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ stop_order: order })
+                });
+                showToast('Stop order saved!');
+                closeModal('route-map-modal');
+            } catch { showToast('Failed to save', 'error'); }
+        }
+
+        function closeRouteMap() {
+            document.getElementById('route-map-modal').classList.remove('open');
+        }
+    </script>
+
+    <!-- Route Map Builder Modal -->
+    <div id="route-map-modal" class="modal-overlay" onclick="if(event.target===this)closeRouteMap()">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden flex flex-col" style="max-height:90vh">
+            <div class="flex items-center justify-between p-5 border-b border-slate-100">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900" id="map-modal-title">Route Map</h2>
+                    <p class="text-xs text-slate-400 mt-0.5" id="map-stats">Loading...</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="map-optimize-btn" onclick="optimizeRouteMap()" class="text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition">⚡ Optimize Order</button>
+                    <button onclick="closeRouteMap()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100">
+                        <i data-lucide="x" class="w-4 h-4 text-slate-500"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="overflow-y-auto flex-1 p-5 space-y-4">
+                <div id="route-map"></div>
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-sm font-bold text-slate-700">Stop Order</h3>
+                        <button onclick="saveStopOrder()" class="text-xs bg-green-600 hover:bg-green-700 text-white font-bold px-3 py-1.5 rounded-xl transition">💾 Save Order</button>
+                    </div>
+                    <div id="stop-order-list" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

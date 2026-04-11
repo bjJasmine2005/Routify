@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Super Admin Login | Routify</title>
+  <meta name="description" content="Login to the Routify Super Administration console.">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080c10;
+      --surface: #0f1419;
+      --surface2: #161d26;
+      --border: rgba(255,255,255,0.08);
+      --border-focus: rgba(99,179,237,0.5);
+      --primary: #3b82f6;
+      --primary-glow: rgba(59,130,246,0.3);
+      --gold: #f59e0b;
+      --gold-glow: rgba(245,158,11,0.3);
+      --text: #f1f5f9;
+      --muted: #64748b;
+      --error: #ef4444;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      color: var(--text);
+    }
+
+    /* Animated background */
+    .bg-orbs {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.15;
+      animation: floatOrb 8s ease-in-out infinite;
+    }
+    .orb-1 { width: 500px; height: 500px; background: #3b82f6; top: -150px; left: -150px; animation-delay: 0s; }
+    .orb-2 { width: 400px; height: 400px; background: #8b5cf6; bottom: -100px; right: -100px; animation-delay: -3s; }
+    .orb-3 { width: 300px; height: 300px; background: #f59e0b; top: 50%; left: 50%; transform: translate(-50%,-50%); animation-delay: -6s; }
+
+    @keyframes floatOrb {
+      0%, 100% { transform: translate(0,0) scale(1); }
+      33% { transform: translate(20px,-20px) scale(1.05); }
+      66% { transform: translate(-20px,10px) scale(0.95); }
+    }
+
+    /* Grid pattern overlay */
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .login-card {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 440px;
+      padding: 24px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 100px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .logo-section {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .logo-icon {
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      box-shadow: 0 0 40px rgba(59,130,246,0.4);
+      position: relative;
+    }
+    .logo-icon::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, rgba(59,130,246,0.5), rgba(139,92,246,0.5));
+      z-index: -1;
+      filter: blur(8px);
+    }
+    .logo-icon .material-symbols-outlined {
+      font-size: 36px;
+      color: white;
+    }
+
+    h1 { font-size: 28px; font-weight: 900; letter-spacing: -0.5px; }
+    h1 span { 
+      background: linear-gradient(135deg, #3b82f6, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle { color: var(--muted); font-size: 14px; margin-top: 8px; }
+
+    .card {
+      background: rgba(15,20,25,0.8);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 36px;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+    }
+
+    .field-group { margin-bottom: 20px; }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-bottom: 8px;
+      letter-spacing: 0.02em;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+    .input-wrap .material-symbols-outlined {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 20px;
+      color: var(--muted);
+      transition: color 0.2s;
+    }
+    input {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 14px 14px 44px;
+      font-size: 15px;
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      outline: none;
+      transition: all 0.2s;
+    }
+    input:focus {
+      border-color: rgba(59,130,246,0.6);
+      background: rgba(59,130,246,0.05);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+    input:focus + .material-symbols-outlined,
+    .input-wrap:focus-within .ico { color: #3b82f6; }
+
+    .toggle-pw {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      padding: 4px;
+      display: flex;
+      align-items: center;
+    }
+    .toggle-pw:hover { color: var(--text); }
+    .toggle-pw .material-symbols-outlined { font-size: 20px; }
+
+    input[type="password"] { padding-right: 44px; }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 24px 0;
+    }
+    .divider-line { flex: 1; height: 1px; background: var(--border); }
+    .divider span { font-size: 12px; color: var(--muted); font-weight: 500; }
+
+    .btn-login {
+      width: 100%;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 15px;
+      font-size: 16px;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+      letter-spacing: 0.02em;
+    }
+    .btn-login:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(59,130,246,0.4); }
+    .btn-login:active { transform: translateY(0); }
+    .btn-login:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .btn-login .btn-content { display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+    .error-box {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: #fca5a5;
+      display: none;
+      margin-bottom: 20px;
+      align-items: center;
+      gap: 8px;
+    }
+    .error-box.show { display: flex; }
+
+    .security-note {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .security-note .material-symbols-outlined { font-size: 14px; }
+
+    .spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading .spinner { display: block; }
+    .loading .btn-text { display: none; }
+
+    /* Floating notification */
+    .notif {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      background: rgba(15,20,25,0.9);
+      border: 1px solid rgba(74,222,128,0.3);
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 14px;
+      color: #4ade80;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transform: translateX(200px);
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 100;
+    }
+    .notif.show { transform: translateX(0); opacity: 1; }
+
+    /* ─── Responsive ─────────────────────────────────── */
+    @media (max-width: 480px) {
+      body { overflow-y: auto; align-items: flex-start; padding: 20px 0; }
+      .login-card { padding: 16px; }
+      .card { padding: 24px 20px; }
+      .logo-icon { width: 56px; height: 56px; }
+      .logo-icon .material-symbols-outlined { font-size: 28px; }
+      h1 { font-size: 22px; }
+      .orb-1 { width: 300px; height: 300px; }
+      .orb-2 { width: 250px; height: 250px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+  <div class="grid-overlay"></div>
+
+  <div class="login-card">
+    <div class="logo-section">
+      <div style="display:flex;justify-content:center;margin-bottom:16px;">
+        <span class="badge">
+          <span class="material-symbols-outlined" style="font-size:14px">shield</span>
+          Platform Command Center
+        </span>
+      </div>
+      <div class="logo-icon">
+        <span class="material-symbols-outlined">directions_bus</span>
+      </div>
+      <h1>Routify <span>Super Admin</span></h1>
+      <p class="subtitle">Privileged platform access • All institutions</p>
+    </div>
+
+    <div class="card">
+      <div class="error-box" id="errorBox">
+        <span class="material-symbols-outlined" style="font-size:18px">error</span>
+        <span id="errorMsg">Invalid credentials</span>
+      </div>
+
+      <form id="loginForm">
+        <div class="field-group">
+          <label for="email">Admin Email</label>
+          <div class="input-wrap">
+            <span class="material-symbols-outlined ico">admin_panel_settings</span>
+            <input type="email" id="email" placeholder="superadmin@routify.app" autocomplete="username" required/>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="password">Password</label>
+          <div class="input-wrap">
+            <span class="material-symbols-outlined ico">lock</span>
+            <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password" required/>
+            <button type="button" class="toggle-pw" id="togglePw" onclick="togglePassword()">
+              <span class="material-symbols-outlined" id="eyeIcon">visibility_off</span>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-login" id="loginBtn">
+          <div class="btn-content">
+            <div class="spinner"></div>
+            <span class="btn-text">Access Control Panel</span>
+            <span class="material-symbols-outlined" style="font-size:18px">arrow_forward</span>
+          </div>
+        </button>
+      </form>
+
+      <div class="security-note">
+        <span class="material-symbols-outlined">lock</span>
+        Encrypted session • Audit logged • Auto-expires in 24h
+      </div>
+    </div>
+  </div>
+
+  <div class="notif" id="notif">
+    <span class="material-symbols-outlined">check_circle</span>
+    <span>Authentication successful</span>
+  </div>
+
+  <script>
+    function togglePassword() {
+      const pw = document.getElementById('password');
+      const icon = document.getElementById('eyeIcon');
+      if (pw.type === 'password') {
+        pw.type = 'text';
+        icon.textContent = 'visibility';
+      } else {
+        pw.type = 'password';
+        icon.textContent = 'visibility_off';
+      }
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('loginBtn');
+      const errBox = document.getElementById('errorBox');
+      const errMsg = document.getElementById('errorMsg');
+
+      btn.classList.add('loading');
+      btn.disabled = true;
+      errBox.classList.remove('show');
+
+      try {
+        const res = await fetch('/api/superadmin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value
+          })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          errMsg.textContent = data.error || 'Authentication failed';
+          errBox.classList.add('show');
+          btn.classList.remove('loading');
+          btn.disabled = false;
+          return;
+        }
+
+        // Store token
+        localStorage.setItem('superadmin_token', data.token);
+
+        // Show success notification
+        document.getElementById('notif').classList.add('show');
+
+        setTimeout(() => {
+          window.location.href = '/superadmin/dashboard';
+        }, 800);
+
+      } catch (err) {
+        errMsg.textContent = 'Network error. Please try again.';
+        errBox.classList.add('show');
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      }
+    });
+
+    // Auto-focus email
+    document.getElementById('email').focus();
+  </script>
+</body>
+</html>
