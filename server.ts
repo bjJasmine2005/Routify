@@ -162,7 +162,9 @@ async function startServer() {
       if (!student) return res.status(404).json({ error: "Student not found" });
 
       const inst = await Institution.findById(req.user.institutionId);
-      const portalUrl = `${process.env.APP_URL || `http://localhost:${PORT}`}/parent/portal/${student.access_token}`;
+      const protocol = req.protocol === 'http' && req.headers['x-forwarded-proto'] ? req.headers['x-forwarded-proto'] : req.protocol;
+      const baseUrl = process.env.APP_URL || `${protocol}://${req.get('host')}`;
+      const portalUrl = `${baseUrl}/parent/portal/${student.access_token}`;
 
       await sendEmail(student.parent_email, `Your child's bus tracker — ${inst?.name || 'School'}`,
         `<div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;padding:24px">
@@ -241,7 +243,9 @@ async function startServer() {
 
       await User.findByIdAndUpdate(user._id, { resetToken, resetTokenExpiry: resetExpiry });
 
-      const resetUrl = `${process.env.APP_URL || `http://localhost:${PORT}`}/reset-password?token=${resetToken}`;
+      const protocol = req.protocol === 'http' && req.headers['x-forwarded-proto'] ? req.headers['x-forwarded-proto'] : req.protocol;
+      const baseUrl = process.env.APP_URL || `${protocol}://${req.get('host')}`;
+      const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
       await sendEmail(
         email,
         'Reset Your Routify Password',
@@ -270,8 +274,10 @@ async function startServer() {
     if (!token || !password) return res.status(400).json({ error: "Token and password are required" });
     try {
       const user = await User.findOne({
-        resetToken: token,
-        resetTokenExpiry: { $gt: new Date() }
+        $or: [
+          { resetToken: token, resetTokenExpiry: { $gt: new Date() } },
+          { resetPasswordToken: token, resetPasswordExpire: { $gt: new Date() } }
+        ]
       });
       if (!user) return res.status(400).json({ error: "This reset link is invalid or has expired. Please request a new one." });
 
@@ -279,7 +285,9 @@ async function startServer() {
       await User.findByIdAndUpdate(user._id, {
         password: hashedPassword,
         resetToken: undefined,
-        resetTokenExpiry: undefined
+        resetTokenExpiry: undefined,
+        resetPasswordToken: undefined,
+        resetPasswordExpire: undefined
       });
       res.json({ message: "Password updated successfully" });
     } catch (error) {
@@ -471,7 +479,9 @@ async function startServer() {
       });
 
       const inst = await Institution.findById(req.user.institutionId);
-      const portalUrl = `${process.env.APP_URL || `http://localhost:${PORT}`}/parent/portal/${access_token}`;
+      const protocol = req.protocol === 'http' && req.headers['x-forwarded-proto'] ? req.headers['x-forwarded-proto'] : req.protocol;
+      const baseUrl = process.env.APP_URL || `${protocol}://${req.get('host')}`;
+      const portalUrl = `${baseUrl}/parent/portal/${access_token}`;
       await sendEmail(parent_email, `Your Routify Parent Portal — ${inst?.name || 'School'}`,
         `<div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;padding:24px">
           <div style="background:#2563eb;padding:20px 24px;border-radius:16px 16px 0 0;">

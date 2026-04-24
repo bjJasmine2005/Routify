@@ -26,6 +26,8 @@ export interface IUser {
   phone?: string;
   resetToken?: string;
   resetTokenExpiry?: Date;
+  resetPasswordToken?: string;
+  resetPasswordExpire?: Date;
 }
 
 const UserSchema = new Schema<IUser>({
@@ -38,6 +40,8 @@ const UserSchema = new Schema<IUser>({
   phone: { type: String },
   resetToken: { type: String },
   resetTokenExpiry: { type: Date },
+  resetPasswordToken: { type: String },
+  resetPasswordExpire: { type: Date },
 });
 
 // ─── Vehicle ──────────────────────────────────────────────────────────────────
